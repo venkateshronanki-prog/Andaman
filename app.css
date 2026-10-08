@@ -210,3 +210,14 @@ body{height:100%;overflow:hidden;overscroll-behavior:none;position:fixed;inset:0
 .pal[aria-pressed="true"]{border-color:var(--accent)}
 .pal i{display:flex;width:44px;height:28px;border-radius:9px;overflow:hidden;border:1px solid rgba(0,0,0,.08)}
 .pal i b{flex:1}
+
+/* full-height fit on iPhone (fills to the bottom edge), bigger settings gear, text size choice */
+html{background:var(--bg)}
+#app{position:fixed;top:0;bottom:0;left:0;right:0;width:100%;height:auto;margin-inline:auto}
+.stat button.gear{font-size:24px;line-height:1;padding:2px 8px;min-width:40px;min-height:36px}
+html[data-fs="s"]{-webkit-text-size-adjust:90%;text-size-adjust:90%}
+html[data-fs="l"]{-webkit-text-size-adjust:115%;text-size-adjust:115%}
+html[data-fs="xl"]{-webkit-text-size-adjust:130%;text-size-adjust:130%}
+.fsz{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.fsz button{border-radius:14px;border:2px solid var(--line);background:var(--card);padding:10px 4px;font-weight:700}
+.fsz button[aria-pressed="true"]{border-color:var(--accent)}

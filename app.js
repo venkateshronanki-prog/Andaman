@@ -197,7 +197,7 @@ function status(){const el=$('stat');if(!el)return;const n=ST.ob.length,c=ST.cf.
  else if(!SYNC.live)h=`<b class="w">Offline</b><span>${n?n+' waiting to send':'Everything saved on this phone'}</span>`;
  else if(n)h=`<b class="w">${n} waiting</b><span>Sending…</span>`;
  else h=`<b>Synced</b><span>Shared with your partner</span>`;
- el.innerHTML=h+(cfg()?'<button data-a="settings">⚙</button>':'')}
+ el.innerHTML=h+(cfg()?'<button class="gear" data-a="settings" aria-label="Settings">⚙</button>':'')}
 const stat=()=>`<div class="stat" id="stat"></div>`;
 
 /* ================= views ================= */
@@ -346,12 +346,15 @@ function pickPhoto(id){const pk=$('pick');pk.onchange=()=>{const f=pk.files&&pk.
 async function rmPhoto(id){await setPh(id,null);delete SYNC.phut[id];queueDel('photos/'+id);closeLayer();render('keep');toast('Photo removed')}
 function curPal(){try{return localStorage.getItem('an_pal')||'lagoon'}catch(e){return'lagoon'}}
 function setPal(n){try{localStorage.setItem('an_pal',n)}catch(e){}if(window.applyPal)window.applyPal(n);document.querySelectorAll('.pal').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.pal===n)))}
+function curFs(){try{return localStorage.getItem('an_fs')||'m'}catch(e){return'm'}}
+function setFs(n){try{localStorage.setItem('an_fs',n)}catch(e){}const r=document.documentElement;if(n==='m')r.removeAttribute('data-fs');else r.setAttribute('data-fs',n);document.querySelectorAll('.fsz button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.fs===n)))}
 function settingsSheet(){const c=cfg();const fromFile=!!(window.FB&&window.FB.projectId&&window.FB.apiKey);
  openLayer(`<h2>Settings</h2>
  <div class="cmp"><div><small>Sync</small>${c?(SYNC.denied?'Blocked. Check the Firebase rules.':SYNC.live?'Connected. Changes are shared.':'Offline right now. Changes are saved here and sent later.'):'Not set up. The app works on this phone only.'}</div></div>
  ${fromFile?'':`<label>Firebase project ID<input class="in" id="s-p" autocapitalize="none" autocorrect="off" spellcheck="false" value="${esc((ST.cfg&&ST.cfg.projectId)||'')}"></label><label>Firebase web API key<input class="in" id="s-k" autocapitalize="none" autocorrect="off" spellcheck="false" value="${esc((ST.cfg&&ST.cfg.apiKey)||'')}"></label><div class="row"><button class="btn" data-a="savecfg">Save and connect</button></div>`}
  <div class="row"><button class="btn ghost" data-a="check">Check connection</button><button class="btn plain" data-a="reload">Reload latest version</button></div>
  <div class="err" id="s-e" hidden></div>
+ <div><div class="eyebrow" style="margin-bottom:8px">Text size (this phone)</div><div class="fsz" role="group" aria-label="Text size">${[['s','Small','14px'],['m','Normal','17px'],['l','Large','20px'],['xl','Extra large','23px']].map(([k,l,s])=>`<button data-fs="${k}" aria-pressed="${k===curFs()}"><span style="font-size:${s};display:block">Aa</span><span style="font-size:11px">${l}</span></button>`).join('')}</div></div>
  <div><div class="eyebrow" style="margin-bottom:8px">Colour mode (this phone)</div><div class="pals" role="group" aria-label="Colour mode">${Object.keys(window.PALS).map(k=>`<button class="pal" data-pal="${k}" aria-pressed="${k===curPal()}"><i><b style="background:${window.PALS[k][1]}"></b><b style="background:${window.PALS[k][3]}"></b><b style="background:${window.PALS[k][2]}"></b></i>${window.PALS[k][0]}</button>`).join('')}</div></div>
  <div class="row"><button class="btn plain" data-a="lock">Lock app (forget passphrase)</button><button class="btn plain" data-a="close">Close</button></div>
  <p class="route" style="margin:0">Version 1 · ${DEV()}</p>`)}
@@ -367,6 +370,7 @@ document.addEventListener('click',e=>{
  if(b.dataset.t){tab=b.dataset.t;render('saved');return}
  if(b.dataset.d){sel=+b.dataset.d;render('saved');return}
  if(b.dataset.pal){setPal(b.dataset.pal);return}
+ if(b.dataset.fs){setFs(b.dataset.fs);return}
  if(b.dataset.go){sel=+b.dataset.go;tab='today';render('saved');return}
  if(b.dataset.k){const k=b.dataset.k;const nv=!b.closest('li').classList.contains('done');const ck='a_'+k.replace(/[^\w-]/g,'_');ST.done=ST.done.filter(x=>x!==k);ST.syn.chk[ck]=nv;queueSet('checks/'+ck,{v:nv,at:Date.now()});save();b.closest('li').classList.toggle('done',nv);return}
  if(b.dataset.cp){const v=b.dataset.cp;const ok=()=>toast('Copied '+v);try{navigator.clipboard.writeText(v).then(ok,()=>toast(v))}catch(x){toast(v)}return}

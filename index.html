@@ -21,6 +21,7 @@ if(n==='lagoon'){r.removeAttribute('data-pal');r.removeAttribute('data-theme')}
 else{r.setAttribute('data-pal',n);r.setAttribute('data-theme',n==='night'?'dark':'light')}
 var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',window.BARS[n])}catch(e){}};
 try{window.applyPal(localStorage.getItem('an_pal')||'lagoon')}catch(e){}
+try{var f=localStorage.getItem('an_fs');if(f&&f!=='m')document.documentElement.setAttribute('data-fs',f)}catch(e){}
 </script>
 <link rel="stylesheet" href="app.css">
 </head>
