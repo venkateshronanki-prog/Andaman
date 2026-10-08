@@ -77,7 +77,7 @@ const decFields=f=>{const o={};for(const k in(f||{}))o[k]=dec(f[k]);return o};
 const encFields=o=>{const f={};for(const k in o)f[k]=enc(o[k]);return f};
 async function api(method,path,qs,body){
  const c=cfg();if(!c)throw{code:'nocfg'};
- const base=(c.apiBase||FS.base);const url=`${base}/projects/${encodeURIComponent(c.projectId)}/databases/(default)/documents/trips/${TRIP}${path?'/'+path:''}`;
+ const base=(c.apiBase||FS.base);const url=`${base}/projects/${encodeURIComponent(c.projectId)}/databases/${encodeURIComponent(c.databaseId||"(default)")}/documents/trips/${TRIP}${path?'/'+path:''}`;
  const q=new URLSearchParams();q.set('key',c.apiKey);(qs||[]).forEach(([k,v])=>q.append(k,v));
  let r;try{r=await fetch(url+'?'+q.toString(),{method,headers:body?{'Content-Type':'application/json'}:undefined,body:body?JSON.stringify(body):undefined})}catch(e){throw{code:'unavailable'}}
  let j=null;try{j=await r.json()}catch(e){}
