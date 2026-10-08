@@ -224,7 +224,7 @@ function viewToday(){
  h+=`<div class="addrow"><button class="btn" data-a="add">+ Add activity</button></div>`;
  h+=`<ol class="tl" style="${theme(d)}">${its.length?its.map(it=>row(it,dn)).join(''):'<li><span></span><div class="x" style="color:var(--soft)">No activities yet. Tap Add activity.</div><span></span></li>'}</ol>`;
  if(d.note)h+=`<div class="note"><b>Note.</b> ${esc(d.note)}</div>`;
- $('pane').innerHTML=h;status();paintInfo();wxFetch();if(isNow)paintNow()}
+ $('pane').innerHTML=h;status();paintInfo();wxFetch();tdFetch();if(isNow)paintNow()}
 function row(it,dn){const k=it.id;
  return `<li data-id="${esc(k)}" class="${dn.has(k)?'done':''}">${thumb(it)}<div class="x"><div class="tt">${it.t}${it.pending?'<span class="pend" title="Not shared yet"></span>':''}</div>${esc(it.x)}${it.g.map(g=>`<div class="tag ${g[0]}">${esc(g[1])}</div>`).join('')}${it.docs.length?`<div class="dchips">${it.docs.map(i=>`<button class="dchip" data-doc="${i}">${esc(docShort(i))}</button>`).join('')}</div>`:''}${xtra(it)}</div><div class="acts"><button class="ck" data-k="${esc(k)}" aria-label="Mark done"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></button><button data-edit="${esc(k)}" aria-label="Edit activity"><svg viewBox="0 0 24 24"><path d="M4 20l4-1 11-11-3-3L5 16z"/></svg></button></div></li>`}
 function paintNow(){
@@ -415,11 +415,33 @@ async function wxFetch(){if(WX.busy||!navigator.onLine)return;if(WX.d&&Date.now(
   const [m,p]=await Promise.all([g(19.07,72.88),g(11.62,92.73)]);
   const pick=j=>{const o={};j.daily.time.forEach((dt,i)=>{o[dt]=[j.daily.weathercode[i],Math.round(j.daily.temperature_2m_max[i]),Math.round(j.daily.temperature_2m_min[i]),j.daily.precipitation_probability_max[i]]});return o};
   WX.d={t:Date.now(),mum:pick(m),pb:pick(p)};lsSet('an_wx',JSON.stringify(WX.d));paintInfo()}catch(e){}WX.busy=false}
+/* tides: Open-Meteo marine sea level (about 8 km grid, so approximate). Hourly values are refined to the minute. */
+const TD={d:null,busy:false};
+try{const o=JSON.parse(lsGet('an_td','null'));if(o&&o.mum&&o.pb)TD.d=o}catch(e){}
+function tideExtremes(times,vals){const raw=[];
+ for(let i=1;i<vals.length-1;i++){const a=vals[i-1],b=vals[i],c=vals[i+1];if([a,b,c].some(x=>typeof x!=='number'||!isFinite(x)))continue;
+  const hi=b>a&&b>=c,lo=b<a&&b<=c;if(!hi&&!lo)continue;const den=a-2*b+c,off=den!==0?0.5*(a-c)/den:0,o=Math.max(-.5,Math.min(.5,off));
+  const t=Date.parse(times[i]+':00Z');if(!isFinite(t))continue;raw.push({k:hi?'H':'L',m:t/60000+o*60,val:b-0.25*(a-c)*o})}
+ const f=[];for(const e of raw){const p=f[f.length-1];if(p&&p.k===e.k){if((e.k==='H'&&e.val>p.val)||(e.k==='L'&&e.val<p.val))f[f.length-1]=e}else f.push(e)}
+ const out={};for(const e of f){const day=new Date(e.m*60000).toISOString().slice(0,10);const mm=((Math.round(e.m)%1440)+1440)%1440;(out[day]=out[day]||[]).push([e.k,mm,Math.round(e.val*100)/100])}
+ return out}
+async function tdFetch(){if(TD.busy||!navigator.onLine)return;if(TD.d&&Date.now()-(TD.d.t||0)<3*3600e3)return;TD.busy=true;
+ try{const g=async(lat,lon)=>{const ac=new AbortController(),to=setTimeout(()=>ac.abort(),8000);try{const r=await fetch('https://marine-api.open-meteo.com/v1/marine?latitude='+lat+'&longitude='+lon+'&hourly=sea_level_height_msl&timezone=Asia%2FKolkata&start_date=2026-10-09&end_date=2026-10-21',{signal:ac.signal});if(!r.ok)throw new Error('td');const j=await r.json();if(!j||!j.hourly||!Array.isArray(j.hourly.time)||!Array.isArray(j.hourly.sea_level_height_msl)||j.hourly.time.length<48)throw new Error('td shape');return tideExtremes(j.hourly.time,j.hourly.sea_level_height_msl)}finally{clearTimeout(to)}};
+  const [m,p]=await Promise.all([g(19.07,72.88),g(11.62,92.73)]);
+  if(!Object.keys(m).length||!Object.keys(p).length)throw new Error('td empty');
+  TD.d={t:Date.now(),mum:m,pb:p};lsSet('an_td',JSON.stringify(TD.d));paintInfo()}catch(e){}TD.busy=false}
+function tidePills(n){try{const t=TD.d&&TD.d[n<=11?'mum':'pb']&&TD.d[n<=11?'mum':'pb']['2026-10-'+String(n).padStart(2,'0')];
+ if(!t||!t.length)return '<span class="pill muted">Tides appear when online</span>';
+ const H=t.filter(x=>x[0]==='H').map(x=>hm(x[1])),L=t.filter(x=>x[0]==='L').map(x=>hm(x[1]));
+ let h=(H.length?`<span class="pill sky">High tide ~${H.join(' · ')}</span>`:'')+(L.length?`<span class="pill mint">Low tide ~${L.join(' · ')}</span>`:'');
+ const c=clock();if(c.live&&c.day===n){const nx=t.find(x=>x[1]>c.m);if(nx){const d=nx[1]-c.m,w=d>=60?Math.floor(d/60)+'h '+(d%60)+'m':d+'m';h+=`<span class="pill peach">${nx[0]==='H'?'Rising, high':'Falling, low'} in ${w}</span>`}}
+ return h}catch(e){return ''}}
 function paintInfo(){try{const el=$('dinfo');if(!el)return;const n=sel,loc=dayLoc(n),[sr,ss]=sunTimes(loc[0],loc[1],2026,9,n);
  let h=`<span class="pill butter">Sunrise ${hm(sr)}</span><span class="pill peach">Sunset ${hm(ss)}</span>`;
  const w=WX.d&&WX.d[n<=11?'mum':'pb']&&WX.d[n<=11?'mum':'pb']['2026-10-'+n];
  if(!w)h+=`<span class="pill muted">Forecast appears when online</span>`;
  if(w)h+=`<span class="pill sky">${wxName(w[0])} ${w[2]}° to ${w[1]}°C${w[3]!=null?' · rain '+w[3]+'%':''}</span>`;
+ h+=tidePills(n);
  el.innerHTML=h||''}catch(e){}}
 /* leave-now countdown */
 const CRIT=/ferry|makruzz|nautika|flight|indigo|boarding|bag drop|jetty|check out|leave|cab (to|from)|light & sound|report at|at the .* counter/i;
@@ -445,7 +467,7 @@ function guideSheet(){const P=[['Hello','Namaste','Namaskaram','Vanakkam'],['Tha
 const R=[['Hyderabad','Hyderabad'],['Mumbai','Mumbai'],['Port Blair','Port Blair'],['Havelock (Swaraj Dweep)','Havelock Island'],['Neil (Shaheed Dweep)','Neil Island']];
 openLayer(`<h2>Offline guide</h2><p class="route" style="margin:0">Everything on this page works with no internet. The Maps links open Google Maps, which needs a connection unless you downloaded that area there.</p>
 <div class="eyebrow" style="margin-top:6px">Tips for ${esc(KN())} and the trip</div>
-<ul class="gtips"><li>Andaman: carry enough cash. Cards and UPI can fail on the islands and ATMs are fewer at Havelock and Neil.</li><li>Mobile signal is patchy on the islands. Save tickets and documents here before you go; they open offline.</li><li>Ferries: carry photo ID for every traveller and reach the jetty early. The ticket shows the reporting time, so follow that.</li><li>Rough sea day: take motion-sickness tablets before boarding, not after.</li><li>Airport cabs: use the official prepaid counter or a booked cab and agree the fare before you start.</li><li>October is hot and humid: water, a hat and sunscreen for ${esc(KN())}, and a light jacket for cold ferry cabins and flights.</li><li>Confirm timings on the day. Schedules, ferry slots and opening hours can change.</li></ul>
+<ul class="gtips"><li>Andaman: carry enough cash. Cards and UPI can fail on the islands and ATMs are fewer at Havelock and Neil.</li><li>Mobile signal is patchy on the islands. Save tickets and documents here before you go; they open offline.</li><li>Ferries: carry photo ID for every traveller and reach the jetty early. The ticket shows the reporting time, so follow that.</li><li>Rough sea day: take motion-sickness tablets before boarding, not after.</li><li>Airport cabs: use the official prepaid counter or a booked cab and agree the fare before you start.</li><li>October is hot and humid: water, a hat and sunscreen for ${esc(KN())}, and a light jacket for cold ferry cabins and flights.</li><li>Tide times are estimates from a coarse sea model, not a tide table. Check locally before swimming, snorkelling or crossing at low tide.</li><li>Confirm timings on the day. Schedules, ferry slots and opening hours can change.</li></ul>
 <div class="eyebrow">Useful phrases</div><div class="gph"><div class="gh"><b>English</b><b>Hindi</b><b>Telugu</b><b>Tamil</b></div>${P.map(r=>`<div class="gr">${r.map(x=>`<span>${esc(x)}</span>`).join('')}</div>`).join('')}</div>
 <div class="eyebrow">Pharmacies and ATMs near you (needs Maps)</div><div class="sosg">${R.map(([l,q])=>`<a class="btn ghost" href="${mapUrl('24 hour pharmacy near '+q)}" target="_blank" rel="noopener noreferrer">Pharmacy, ${esc(l)}</a><a class="btn ghost" href="${mapUrl('ATM near '+q)}" target="_blank" rel="noopener noreferrer">ATM, ${esc(l)}</a>`).join('')}</div>
 <div class="row"><button class="btn plain" data-a="close">Close</button></div>`)}

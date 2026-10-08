@@ -274,7 +274,7 @@ button:active,a.nav:active,.drow:active,.dc:active{transform:scale(.97)}
 .stat{min-height:44px;flex-wrap:nowrap}
 .stat>span:not(.sbtns){white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 auto}
 .stat .sbtns{flex:0 0 auto}
-.dinfo{min-height:68px;align-content:flex-start}
+.dinfo{min-height:104px;align-content:flex-start}
 .dinfo:empty{display:flex}
 .pill.muted{background:transparent;color:var(--soft);border:1px dashed var(--line)}
 html[data-fs="l"] .top h1{min-height:68px}
@@ -330,3 +330,6 @@ html,body{touch-action:manipulation}
 
 .gtips{margin:0;padding-left:18px;display:grid;gap:6px;font-size:14px}
 .gph{display:grid;gap:2px;font-size:13px}.gh,.gr{display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr;gap:6px;padding:6px 0;border-bottom:1px solid var(--line)}.gh{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--soft)}.gr span:first-child{font-weight:700}
+
+html[data-fs="l"] .dinfo{min-height:122px}
+html[data-fs="xl"] .dinfo{min-height:132px}
