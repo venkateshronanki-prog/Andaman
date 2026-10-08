@@ -357,6 +357,7 @@ function settingsSheet(){const c=cfg();const fromFile=!!(window.FB&&window.FB.pr
  ${fromFile?'':`<label>Firebase project ID<input class="in" id="s-p" autocapitalize="none" autocorrect="off" spellcheck="false" value="${esc((ST.cfg&&ST.cfg.projectId)||'')}"></label><label>Firebase web API key<input class="in" id="s-k" autocapitalize="none" autocorrect="off" spellcheck="false" value="${esc((ST.cfg&&ST.cfg.apiKey)||'')}"></label><div class="row"><button class="btn" data-a="savecfg">Save and connect</button></div>`}
  <div class="row"><button class="btn ghost" data-a="check">Check connection</button><button class="btn plain" data-a="reload">Reload latest version</button></div>
  <div class="err" id="s-e" hidden></div>
+ <div><div class="eyebrow" style="margin-bottom:8px">Screen fit (this phone)</div><button class="btn ghost" data-a="fit" style="width:100%">Stretch to bottom: ${(()=>{try{return localStorage.getItem('an_fit')==='fill'?'ON':'OFF'}catch(e){return'OFF'}})()}</button><p class="route" style="margin:6px 0 0">Leave OFF unless the bottom bar floats too high.</p></div>
  <div><div class="eyebrow" style="margin-bottom:8px">Child mode (this phone)</div><button class="btn ghost" data-a="kid" style="width:100%">Child mode: ${kidOn()?'ON':'OFF'}</button><p class="route" style="margin:6px 0 0">Adds a short tip for your child under each activity.</p></div>
  <div><div class="eyebrow" style="margin-bottom:8px">Text size (this phone)</div><div class="fsz" role="group" aria-label="Text size">${[['s','Small','14px'],['m','Normal','17px'],['l','Large','20px'],['xl','Extra large','23px']].map(([k,l,s])=>`<button data-fs="${k}" aria-pressed="${k===curFs()}"><span style="font-size:${s};display:block">Aa</span><span style="font-size:11px">${l}</span></button>`).join('')}</div></div>
  <div><div class="eyebrow" style="margin-bottom:8px">Colour mode (this phone)</div><div class="pals" role="group" aria-label="Colour mode">${Object.keys(window.PALS).map(k=>`<button class="pal" data-pal="${k}" aria-pressed="${k===curPal()}"><i><b style="background:${window.PALS[k][1]}"></b><b style="background:${window.PALS[k][3]}"></b><b style="background:${window.PALS[k][2]}"></b></i>${window.PALS[k][0]}</button>`).join('')}</div></div>
@@ -483,6 +484,7 @@ document.addEventListener('click',e=>{
  else if(a==='settings')settingsSheet();
  else if(a==='sos')sosSheet();
  else if(a==='search')searchSheet();
+ else if(a==='fit'){let f='';try{f=localStorage.getItem('an_fit')||''}catch(e){}try{localStorage.setItem('an_fit',f==='fill'?'':'fill')}catch(e){}if(window.fitApp)window.fitApp();b.textContent='Stretch to bottom: '+(f==='fill'?'OFF':'ON')}
  else if(a==='kid'){lsSet('an_kiana',kidOn()?'0':'1');b.textContent='Child mode: '+(kidOn()?'ON':'OFF');render('keep')}
  else if(a==='savecfg'){const p=$('s-p').value.trim(),k=$('s-k').value.trim();if(p&&k){ST.cfg={projectId:p,apiKey:k};save();SYNC.denied=false;checkConn()}}
  else if(a==='check')checkConn();
@@ -525,6 +527,11 @@ function start(){
  render('saved');loadExtras();
  if(ST.cf.length)showConflict();
  poll();flush()}
+(function(){let x0=0,y0=0,t0=0,ok=false,pull=0;const P=()=>document.getElementById('pane');
+document.addEventListener('touchstart',e=>{const p=P();ok=!!p&&p.contains(e.target)&&!e.target.closest('.chips,input,textarea,.viewer,.ov')&&e.touches.length===1;if(!ok)return;x0=e.touches[0].clientX;y0=e.touches[0].clientY;t0=Date.now();pull=p.scrollTop<=0},{passive:true});
+document.addEventListener('touchend',e=>{if(!ok)return;ok=false;const t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;if(Date.now()-t0>700)return;
+if(pull&&dy>90&&Math.abs(dx)<50){toast('Syncing…');try{flush();poll()}catch(_){}return}
+if(Math.abs(dx)>70&&Math.abs(dy)<45&&tab==='today'){const i=DAYS.findIndex(d=>d.n===sel),j=i+(dx<0?1:-1);if(DAYS[j]){sel=DAYS[j].n;enter();render('keep')}}},{passive:true})})();
 window.__app={loadExtras,get ST(){return ST},get healed(){return healed},heal,flush,poll,itemsFor,sunTimes,spendChart,get sync(){return SYNC},get trip(){return TRIP}};
 boot();
 })();
