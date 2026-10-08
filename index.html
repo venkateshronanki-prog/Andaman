@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -23,7 +23,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('cont
 try{window.applyPal(localStorage.getItem('an_pal')||'lagoon')}catch(e){}
 window.fitApp=function(){try{var sa=window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);var r=document.documentElement;
 try{var lf=localStorage.getItem('an_lift');if(lf)document.documentElement.style.setProperty('--lift',lf+'px')}catch(e){}
-var fit='';try{fit=localStorage.getItem('an_fit')||''}catch(e){}
+var fit=null;try{fit=localStorage.getItem('an_fit')}catch(e){}if(fit===null||fit==='')fit='fill';
 var ex=fit==='fill'?-1:parseInt(fit,10);
 if(!sa||!(ex>0||ex===-1)){r.classList.remove('sa');return}
 var H;if(ex===-1){var tall=Math.max(screen.width,screen.height),short=Math.min(screen.width,screen.height),port=window.innerHeight>=window.innerWidth;H=port?tall:short}else{H=window.innerHeight+ex}

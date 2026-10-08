@@ -364,7 +364,7 @@ function settingsSheet(){const c=cfg();const fromFile=!!(window.FB&&window.FB.pr
  <div><div class="eyebrow" style="margin-bottom:8px">Bottom bar (this phone)</div>
  <div class="srow"><span>Stretch screen down</span><span id="v-fit">${fitVal()}</span></div><input class="ios" type="range" id="r-fit" min="0" max="70" step="1" value="${fitVal()}" style="--p:${100*fitVal()/70}%">
  <div class="srow" style="margin-top:6px"><span>Lift bar up</span><span id="v-lift">${lsGet('an_lift','0')}</span></div><input class="ios" type="range" id="r-lift" min="0" max="40" step="1" value="${lsGet('an_lift','0')}" style="--p:${100*lsGet('an_lift','0')/40}%">
- <p class="route" style="margin:6px 0 0">Stretch fills a blank strip under the bar. Lift raises the bar if it is cut off. Both apply instantly.</p></div>
+ <button class="btn ghost" data-a="fitreset" style="width:100%;margin-top:8px">Reset to standard position</button><p class="route" style="margin:6px 0 0">Stretch fills a blank strip under the bar. Lift raises the bar if it is cut off. Reset puts both back to the standard position and keeps them there.</p></div>
  <div class="swrow"><div><b>Days-to-go on app icon</b><p class="route" style="margin:2px 0 0">Shows a number badge. Updates whenever you open the app.</p></div><button class="btn ghost" data-a="badge">Turn on</button></div>
  <div class="swrow"><div><b>Child mode</b><p class="route" style="margin:2px 0 0">Adds a short tip for your child under each activity.</p></div><input class="sw" type="checkbox" switch data-a="kidsw" ${kidOn()?'checked':''} aria-label="Child mode"></div>
  <div><div class="eyebrow" style="margin-bottom:8px">Text size (this phone)</div><div class="fsz" role="group" aria-label="Text size">${[['s','Small','14px'],['m','Normal','17px'],['l','Large','20px'],['xl','Extra large','23px']].map(([k,l,s])=>`<button data-fs="${k}" aria-pressed="${k===curFs()}"><span style="font-size:${s};display:block">Aa</span><span style="font-size:11px">${l}</span></button>`).join('')}</div></div>
@@ -374,7 +374,7 @@ function settingsSheet(){const c=cfg();const fromFile=!!(window.FB&&window.FB.pr
 async function checkConn(){const er=$('s-e');er.hidden=false;er.style.color='var(--ink)';er.textContent='Checking…';try{await api('GET','items',[['pageSize','1']]);SYNC.live=true;SYNC.denied=false;er.textContent='Connected. Sync is working.';flush();poll()}catch(e){er.style.color='var(--bad)';er.textContent=e&&e.code==='denied'?'Firebase refused the request. Check the rules and API key.':e&&e.code==='nocfg'?'Add the project ID and API key first.':'Could not reach Firebase. Check your connection.'}}
 
 /* ================= extras: maps, sun and weather, countdown, child tips, emergency, search, reminders, spending ================= */
-function fitVal(){const v=parseInt(lsGet('an_fit','0'),10);return isFinite(v)&&v>0?v:(lsGet('an_fit','')==='fill'?62:0)}
+function fitVal(){try{const f=lsGet('an_fit',null);if(f!==null&&f!==''&&f!=='fill'){const v=parseInt(f,10);return isFinite(v)?v:0}const r=document.documentElement;return r.classList.contains('sa')?Math.max(0,Math.round(parseFloat(r.style.getPropertyValue('--vh'))-innerHeight)):0}catch(e){return 0}}
 function lsGet(k,d){try{const v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}}
 function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 
@@ -508,6 +508,7 @@ document.addEventListener('click',e=>{
  else if(a==='settings')settingsSheet();
  else if(a==='sos')sosSheet();
  else if(a==='search')searchSheet();
+ else if(a==='fitreset'){try{localStorage.removeItem('an_fit');localStorage.removeItem('an_lift')}catch(e){}document.documentElement.style.removeProperty('--lift');if(window.fitApp)window.fitApp();const f=fitVal();const rf=$('r-fit'),rl=$('r-lift');if(rf){rf.value=f;rf.style.setProperty('--p',(100*f/70)+'%');$('v-fit').textContent=f}if(rl){rl.value=0;rl.style.setProperty('--p','0%');$('v-lift').textContent='0'}toast('Bottom bar reset')}
  else if(a==='pack')packSheet();
  else if(a==='badge')badgeOn();
  else if(a==='kidsw'){lsSet('an_kiana',b.checked?'1':'0');render('keep')}
