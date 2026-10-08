@@ -333,3 +333,9 @@ html,body{touch-action:manipulation}
 
 html[data-fs="l"] .dinfo{min-height:122px}
 html[data-fs="xl"] .dinfo{min-height:132px}
+
+.gl-c{margin-left:auto}.gl-c+.gl-b{margin-left:0}
+
+.gl-bs{margin-left:auto;display:flex;flex-direction:column;gap:4px;flex:0 0 auto;align-items:stretch}.gl-bs .gl-b{margin-left:0;padding:3px 12px;font-size:12.5px;min-height:0;line-height:1.3}
+
+label.pk{display:flex;flex-direction:row;align-items:flex-start;gap:12px;text-transform:none;letter-spacing:0}label.pk span{text-transform:none;letter-spacing:0;font-size:15px;font-weight:500;color:var(--ink);line-height:1.35}label.pk input{margin-top:1px}

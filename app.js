@@ -210,7 +210,7 @@ function installBanner(){const standalone=window.navigator.standalone||matchMedi
 function glance(its,dn,isNow,c){try{const n=its.length,k=its.filter(i=>dn.has(i.id)).length;const hmn=t=>{const m=/^(\d+):(\d+)/.exec(t||'');return m?(+m[1])*60+(+m[2]):-1};
 let nx=its.find(i=>!dn.has(i.id)&&(!isNow||hmn(i.t)>=c.m))||its.find(i=>!dn.has(i.id));
 const txt=!n?'Nothing planned yet':(k===n?'All done. Enjoy the rest of the day.':nx?`Next ${esc(nx.t||'')} ${esc(String(nx.x||'').slice(0,46))}`:'');
-return `<div class="glance"><div class="gl-n"><b>${k}</b>/${n}<span>done</span></div><div class="gl-t">${txt}</div><button class="btn ghost gl-b" data-a="pack">Pack</button></div>`}catch(e){return''}}
+return `<div class="glance"><div class="gl-n"><b>${k}</b>/${n}<span>done</span></div><div class="gl-t">${txt}</div><div class="gl-bs">${flightsAll().some(f=>f.day===sel)?'<button class="btn ghost gl-b" data-a="checkin">Check-in</button>':''}<button class="btn ghost gl-b" data-a="pack">Pack</button></div></div>`}catch(e){return''}}
 function viewToday(){
  const c=clock();if(sel==null||!dayOf(sel))sel=c.day;const d=dayOf(sel);const its=itemsFor(sel);const dn=new Set(ST.done);for(const kk in ST.syn.chk)if(kk.startsWith('a_')){const id0=kk.slice(2);ST.syn.chk[kk]?dn.add(id0):dn.delete(id0)}
  let h=`<div class="top"><div><div class="eyebrow">${dow(d)}</div><h1>${esc(d.title)}</h1></div></div>${installBanner()}${stat()}`;
@@ -246,7 +246,7 @@ function viewTrip(){const c=clock();
 const docById=id=>DOCS.find(x=>x.id===id)||{id,title:'Document',grp:'',pages:0};
 const docShort=id=>{const d=docById(id);return d.grp==='Flights'||d.grp==='Ferries'?'Ticket':d.grp==='Plan'?'Plan':'Voucher'};
 function viewBook(){const tot=BOOK.reduce((a,b)=>a+b.amt,0);
- let h=`<div class="top"><div><div class="eyebrow">All confirmed</div><h1>Bookings</h1></div><span class="pill mint">${BOOK.length} items</span></div>${stat()}${comingUp()}<div class="bk">`;
+ let h=`<div class="top"><div><div class="eyebrow">All confirmed</div><h1>Bookings</h1></div><span class="pill mint">${BOOK.length} items</span></div>${stat()}${comingUp()}${myDocs()}<div class="bk">`;
  BOOK.forEach(b=>{h+=`<article class="bc"><div class="h"><div><span class="pill ${b.c}">${b.k}</span><h3 style="margin-top:6px">${esc(b.t)}</h3><div class="w">${esc(b.w)}</div></div><div class="amt">${inr(b.amt)}</div></div>
  <div class="kv"><span class="k">Ref</span><code>${esc(b.ref)}</code><button class="cp" data-cp="${esc(b.ref)}">Copy</button></div>
  ${b.ph?`<div class="kv"><span class="k">Phone</span><code>${esc(b.ph)}</code><button class="cp" data-cp="${esc(b.ph)}">Copy</button></div>`:''}
@@ -360,7 +360,7 @@ function settingsSheet(){const c=cfg();const fromFile=!!(window.FB&&window.FB.pr
  openLayer(`<h2>Settings</h2>
  <div class="cmp"><div><small>Sync</small>${c?(SYNC.denied?'Blocked. Check the Firebase rules.':SYNC.live?'Connected. Changes are shared.':'Offline right now. Changes are saved here and sent later.'):'Not set up. The app works on this phone only.'}</div></div>
  ${fromFile?'':`<label>Firebase project ID<input class="in" id="s-p" autocapitalize="none" autocorrect="off" spellcheck="false" value="${esc((ST.cfg&&ST.cfg.projectId)||'')}"></label><label>Firebase web API key<input class="in" id="s-k" autocapitalize="none" autocorrect="off" spellcheck="false" value="${esc((ST.cfg&&ST.cfg.apiKey)||'')}"></label><div class="row"><button class="btn" data-a="savecfg">Save and connect</button></div>`}
- <div class="row"><button class="btn ghost" data-a="guide">Offline guide</button></div>
+ <div class="row"><button class="btn ghost" data-a="checkin">Flight check-in</button><button class="btn ghost" data-a="guide">Offline guide</button></div>
  <div class="row"><button class="btn ghost" data-a="check">Check connection</button><button class="btn plain" data-a="reload">Reload latest version</button></div>
  <div class="err" id="s-e" hidden></div>
  <div><div class="eyebrow" style="margin-bottom:8px">Bottom bar (this phone)</div>
@@ -450,6 +450,73 @@ function paintLeave(){try{const el=$('leavec');if(!el)return;const c=clock(),its
  const left=mins(nx.t)-c.m,tone=left<=30?'r':left<=90?'w':'',t=left>=60?Math.floor(left/60)+' h '+(left%60)+' min':left+' min';
  el.innerHTML=`<div class="leave ${tone}"><b>Be ready in ${t}</b><span>${nx.t} · ${esc(nx.x.slice(0,90))}</span></div>`}catch(e){}}
 /* emergency card */
+/* flight check-in: IndiGo web check-in link, window timer and DigiYatra steps */
+const IGO_URL='https://www.goindigo.in/web-check-in.html',DY_URL='https://apps.apple.com/in/app/digi-yatra/id6479873321';
+function flightsAll(){const out=[];try{for(const d of DAYS){const its=itemsFor(d.n);const hmn=t=>{const m=/^(\d{1,2}):(\d{2})/.exec(t||'');return m?(+m[1])*60+(+m[2]):-1};
+ for(const it of its){const m=/IndiGo\s+(6E\s*\d+)\s+departs\s+([^,(]+)/i.exec(it.x||'');const t=/^(\d{1,2}):(\d{2})/.exec(it.t||'');if(!m||!t)continue;
+ const no=m[1].replace(/\s+/,' ').toUpperCase(),digits=no.replace(/^6E\s*/,'');const dm=(+t[1])*60+(+t[2]);const dep=Date.UTC(2026,9,d.n,+t[1],+t[2])-19800000;
+ const rx=new RegExp('6E\\s*'+digits+'\\b','i'),bk=BOOK.find(b=>rx.test(JSON.stringify(b)));
+ const reachIt=its.find(x=>hmn(x.t)>=0&&hmn(x.t)<dm&&hmn(x.t)>=dm-420&&/reach|arrive|bag drop|check-in/i.test(x.x)&&!/cab|wake/i.test(x.x));
+ const cabIt=its.find(x=>hmn(x.t)>=0&&hmn(x.t)<dm&&/cab/i.test(x.x));
+ const base=Date.UTC(2026,9,d.n,0,0)-19800000;
+ out.push({day:d.n,no,from:m[2].trim(),time:it.t,dep,ref:bk&&bk.ref||'',title:bk&&bk.t||'',docs:bk&&bk.docs||[],pol:bk&&bk.pol||'',reach:reachIt?{t:reachIt.t,at:base+hmn(reachIt.t)*60000}:null,leave:cabIt?{t:cabIt.t,at:base+hmn(cabIt.t)*60000}:null})}}}catch(e){}return out}
+function ferriesAll(){const out=[];try{for(const b of BOOK){if(b.k!=='Ferry')continue;const dm=/(\d{1,2})\s+Oct/.exec(b.w||''),tm=/(\d{1,2}):(\d{2})/.exec(b.w||'');if(!dm||!tm)continue;
+ const day=+dm[1],dep=Date.UTC(2026,9,day,+tm[1],+tm[2])-19800000;const rp=/Report\s+(\d+)\s*(hours?|hrs?|min)/i.exec(b.pol||'');const cl=/closes\s+(\d+)\s*min/i.exec(b.pol||'');const seats=/seats\s+([^·]+)/i.exec(b.w||'');
+ const off=rp?(/min/i.test(rp[2])?+rp[1]:(+rp[1])*60):0;
+ out.push({day,t:b.t,time:tm[1].padStart(2,'0')+':'+tm[2],dep,report:off?dep-off*60000:0,close:cl?dep-(+cl[1])*60000:0,seats:seats?seats[1].trim():'',docs:b.docs||[],pol:b.pol||''})}}catch(e){}return out}
+const dur=ms=>{const m=Math.max(0,Math.round(ms/60000));const d=Math.floor(m/1440),h=Math.floor(m%1440/60),mi=m%60;return (d?d+'d ':'')+(h?h+'h ':'')+(!d?mi+'m':'')};
+function ciState(f,now){const o=f.dep-48*3600e3,c=f.dep-60*60e3;if(now>=f.dep)return['Departed','muted'];if(now>=c)return['Web check-in closed. Use the airport counter','rose'];if(now>=o)return['Web check-in is open. Closes in '+dur(c-now),'mint'];return['Web check-in opens in '+dur(o-now),'butter']}
+const hmI=ms=>{const m=(((Math.floor((ms+19800000)/60000))%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')};
+function clList(key,items){let ck={};try{ck=JSON.parse(localStorage.getItem('an_cl'+key)||'{}')}catch(e){}return items.map((x,i)=>`<label class="pk"><input type="checkbox" data-cl="${esc(key)}" data-i="${i}" ${ck[i]?'checked':''}><span>${esc(x)}</span></label>`).join('')}
+const docBtns=ids=>{const ds=(ids||[]).map(i=>DOCS.find(x=>x.id===i)).filter(Boolean);return ds.map((d,n)=>{const p=d.title.includes(':')?d.title.split(':')[0].trim():d.title;const dup=ds.filter(x=>(x.title.split(':')[0].trim())===p).length>1;return `<button class="btn ghost" data-doc="${esc(d.id)}">Open ${esc(p.replace(/\s*\(.*$/,'').slice(0,30))}${dup?' ('+(n+1)+')':''}</button>`}).join('')};
+function checkinSheet(){const L=flightsAll(),F=ferriesAll(),now=Date.now();
+ const cards=L.map(f=>{const [st,cl]=ciState(f,now);const dt=new Date(f.dep+19800000);
+  const bag=/(\d+)\s*kg/i.exec(f.pol||'');const key='f'+f.day+f.no.replace(/\s/g,'');
+  const chk=['Photo ID for every adult. For '+KN()+', carry any ID proof you have (Aadhaar or birth certificate)','Boarding pass saved offline (screenshot or PDF)','Bags within '+(bag?bag[1]+' kg':'the printed limit')+' per person','Power bank, lighters and spare batteries in hand luggage only','Medicines and '+KN()+"'s snacks in hand luggage"];
+  return `<div class="card" style="display:grid;gap:8px"><div><b>${esc(f.no)}</b> · ${esc(f.from)}<br><small>${dt.getUTCDate()} Oct, departs ${esc(f.time)}</small></div><span class="pill ${cl}" style="justify-self:start">${esc(st)}</span>
+  ${f.reach?`<div class="kv"><span class="k">Reach airport</span><b>${esc(f.reach.t)}</b><small>${f.reach.at>now?'in '+dur(f.reach.at-now):'time has passed'}</small></div>`:''}${f.leave?`<div class="kv"><span class="k">Leave home</span><b>${esc(f.leave.t)}</b><small>${f.leave.at>now?'in '+dur(f.leave.at-now):'time has passed'}</small></div>`:''}
+  <a class="btn" href="${IGO_URL}" target="_blank" rel="noopener noreferrer">IndiGo web check-in</a>${f.ref?`<button class="btn ghost" data-cp="${esc(f.ref)}">Copy booking reference ${esc(f.ref)}</button>`:''}${docBtns(f.docs)}
+  <div class="eyebrow">Before you leave</div>${clList(key,chk)}</div>`}).join('')||'<div class="card empty">No IndiGo flights found.</div>';
+ const fcards=F.map(f=>{const dt=new Date(f.dep+19800000);const key='b'+f.day+f.time;const chk=['Printed photo ID for every traveller (needed for the ferry)',f.seats?'Ferry ticket. Seats '+f.seats:'Ferry ticket','Bags within the weight limit on the ticket','Motion-sickness tablets before boarding',KN()+': jacket and snack for the cabin'];
+  let st='',cl='butter';if(now>=f.dep){st='Departed';cl='muted'}else if(f.close&&now>=f.close){st='Check-in closed';cl='rose'}else if(f.report&&now>=f.report){st='Report now';cl='mint'}else if(f.report){st='Report in '+dur(f.report-now);cl='butter'}else st='Departs in '+dur(f.dep-now);
+  return `<div class="card" style="display:grid;gap:8px"><div><b>${esc(f.t)}</b><br><small>${dt.getUTCDate()} Oct, departs ${esc(f.time)}</small></div><span class="pill ${cl}" style="justify-self:start">${esc(st)}</span>
+  ${f.report?`<div class="kv"><span class="k">Report by</span><b>${hmI(f.report)}</b></div>`:''}${f.close?`<div class="kv"><span class="k">Check-in closes</span><b>${hmI(f.close)}</b></div>`:''}${docBtns(f.docs)}<div class="eyebrow">Before you leave</div>${clList(key,chk)}</div>`}).join('');
+ openLayer(`<h2>Travel check-in</h2><p class="route" style="margin:0">Flights: web check-in is free, opens 48 hours before departure and closes 60 minutes before for domestic flights. Confirm on your ticket.</p>${cards}
+ ${fcards?'<div class="eyebrow" style="margin-top:6px">Ferries</div>'+fcards:''}
+ <div class="eyebrow" style="margin-top:6px">Digi Yatra (paperless entry)</div>
+ <ol class="gtips"><li>Do web check-in first and keep the boarding pass (email or WhatsApp).</li><li>Open Digi Yatra and add that boarding pass. Each adult needs their own Digi Yatra ID.</li><li>At the airport use the Digi Yatra e-gate, and carry your ID in case the face scan fails.</li></ol>
+ <a class="btn ghost" href="${DY_URL}" target="_blank" rel="noopener noreferrer">Open Digi Yatra (App Store page)</a>
+ <p class="route" style="margin:0">A web page cannot launch another app directly. If Digi Yatra is installed, that page shows an Open button. Digi Yatra is listed at Hyderabad, Mumbai and Port Blair airports; check at the airport as lists change.</p>
+ <div class="row"><button class="btn plain" data-a="close">Close</button></div>`)}
+/* user-added booking documents (PDF or photo). Stored like photos, so they sync between phones when small enough. */
+const udLocal=()=>{try{return JSON.parse(lsGet('an_udl','[]'))}catch(e){return[]}};
+const udIds=()=>Object.keys(phMem).filter(k=>k.startsWith('ud-')).sort();
+const udName=u=>{const m=/^data:[^;,]+;name=([^;,]*)[;,]/.exec(u||'');try{return m?decodeURIComponent(m[1]):'Document'}catch(e){return 'Document'}};
+const udIsPdf=u=>/^data:application\/pdf/i.test(u||'');
+function myDocs(){try{const ids=udIds();return `<div class="card" style="margin:0 0 12px"><div class="eyebrow" style="margin-bottom:8px">My added documents</div>${ids.length?ids.map(i=>{const u=getPh(i);return `<button class="drow" data-ud="${esc(i)}"><span>${esc(udName(u))}</span><small>${udIsPdf(u)?'PDF':'Photo'}${udLocal().includes(i)?' · this phone only':''}</small></button>`}).join(''):'<p class="route" style="margin:0 0 8px">Add tickets, vouchers or IDs as a PDF or photo.</p>'}<button class="btn ghost" data-a="addud" style="width:100%;margin-top:8px">+ Add a document</button></div>`}catch(e){return ''}}
+function pickUserDoc(){const pk=document.createElement('input');pk.type='file';pk.accept='application/pdf,image/*';pk.style.display='none';document.body.appendChild(pk);
+ const done=()=>{setTimeout(()=>pk.remove(),500)};
+ pk.onchange=()=>{const f=pk.files&&pk.files[0];if(!f){done();return}const isPdf=f.type==='application/pdf'||/\.pdf$/i.test(f.name);const nm=encodeURIComponent((f.name||'Document').replace(/\.[^.]+$/,'').slice(0,60));
+  const add=async(url,share)=>{const id='ud-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);url=url.replace(/^(data:[^;,]+)(;base64,)/,'$1;name='+nm+'$2');await setPh(id,url);if(share)queueSet('photos/'+id,{img:url,by:DEV(),at:Date.now()});else lsSet('an_udl',JSON.stringify(udLocal().concat([id])));render('keep');toast(share?'Document saved and shared':'Saved on this phone only (too big to share)')};
+  const r=new FileReader();r.onerror=()=>{toast('Could not read that file');done()};
+  if(isPdf){if(f.size>10e6){toast('That PDF is over 10 MB. Please pick a smaller one.');done();return}
+   r.onload=()=>{let url=String(r.result||'');if(!url.startsWith('data:application/pdf'))url=url.replace(/^data:[^;,]*/,'data:application/pdf');add(url,url.length<=640000).catch(()=>toast('Could not save that file'));done()};r.readAsDataURL(f)}
+  else{r.onload=()=>{const im=new Image();im.onerror=()=>{toast('That file is not a photo or PDF');done()};im.onload=async()=>{let w=Math.min(1600,im.width),q=.75,url;const cv=document.createElement('canvas');
+    for(let i=0;i<8;i++){cv.width=w;cv.height=Math.max(1,Math.round(im.height*w/im.width));cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);url=cv.toDataURL('image/jpeg',q);if(url.length<=600000)break;w=Math.round(w*.82);q=Math.max(.45,q-.05)}
+    try{await add(url,url.length<=640000)}catch(e){toast('Could not save that file')}done()};im.src=r.result};r.readAsDataURL(f)}};
+ pk.click()}
+async function udViewer(id){const u=getPh(id);if(!u)return;cleanupDoc();
+ $('layer').innerHTML=`<div class="viewer"><header><button class="btn ghost" data-a="closedoc" style="min-height:40px">Close</button><b>${esc(udName(u))}</b><button class="btn plain" data-a="udel" data-id="${esc(id)}" style="min-height:40px">Delete</button></header><div class="pg"><div class="vc" id="vc"><div class="hint">Opening…</div></div><div class="hint">Pinch to zoom. Stored in the app, so it opens with no signal.</div></div></div>`;
+ try{const vc=$('vc');vc.innerHTML='';
+  if(udIsPdf(u)&&window.pdfjsLib){const b64=u.slice(u.indexOf(',')+1);const bin=atob(b64);const bytes=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+   pdfjsLib.GlobalWorkerOptions.workerSrc='pdf.worker.min.js';const pdf=await pdfjsLib.getDocument({data:bytes}).promise;const dpr=Math.min(window.devicePixelRatio||2,3);
+   for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i);const base=pg.getViewport({scale:1});const cssW=Math.min(window.innerWidth-20,900);const scale=Math.min(3.2,(cssW*dpr*1.6)/base.width);const vp=pg.getViewport({scale});
+    const cv=document.createElement('canvas');cv.width=Math.floor(vp.width);cv.height=Math.floor(vp.height);vc.appendChild(cv);await pg.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise}}
+  else{const im=new Image();im.alt=udName(u);im.style.cssText='width:100%;border-radius:8px';im.src=u;vc.appendChild(im)}
+  vc.dataset.ready='1'}catch(e){const vc=$('vc');if(vc){vc.dataset.ready='1';vc.innerHTML='<div class="card empty">Could not open this file.</div>'}}}
+let udArm=null;
+async function udDelete(id,b){if(udArm!==id){udArm=id;b.textContent='Tap again to delete';setTimeout(()=>{if(udArm===id){udArm=null;try{b.textContent='Delete'}catch(e){}}},3500);return}udArm=null;await rmUd(id)}
+async function rmUd(id){lsSet('an_udl',JSON.stringify(udLocal().filter(x=>x!==id)));await setPh(id,null);delete SYNC.phut[id];queueDel('photos/'+id);cleanupDoc();$('layer').innerHTML='';render('keep');toast('Document deleted')}
 function packList(day){const its=itemsFor(day),T=its.map(i=>(i.x||'')+' '+(i.t||'')).join(' | ').toLowerCase(),k=KN(),L=[];
 const add=(g,a)=>{if(!L.some(x=>x[1]===a))L.push([g,a])};
 add('Always','Water bottle and snacks');add('Always','Sunscreen and hats');add('Always','Phone, power bank and charger');add('Always',k+': favourite snack, wipes and a change of clothes');
@@ -517,6 +584,7 @@ document.addEventListener('click',e=>{
  if(b.dataset.k){const k=b.dataset.k;const nv=!b.closest('li').classList.contains('done');const ck='a_'+k.replace(/[^\w-]/g,'_');ST.done=ST.done.filter(x=>x!==k);ST.syn.chk[ck]=nv;queueSet('checks/'+ck,{v:nv,at:Date.now()});save();b.closest('li').classList.toggle('done',nv);return}
  if(b.dataset.cp){const v=b.dataset.cp;const ok=()=>toast('Copied '+v);try{navigator.clipboard.writeText(v).then(ok,()=>toast(v))}catch(x){toast(v)}return}
  if(b.dataset.del){const id=b.dataset.del;delete ST.syn.exp[id];queueDel('expenses/'+id);viewMoney();return}
+ if(b.dataset.ud){udViewer(b.dataset.ud);return}
  if(b.dataset.doc){docViewer(b.dataset.doc);return}
  if(b.dataset.ph){photoSheet(b.dataset.ph,b.dataset.q||'Andaman');return}
  if(b.dataset.edit){itemSheet(b.dataset.edit);return}
@@ -539,6 +607,9 @@ document.addEventListener('click',e=>{
  else if(a==='search')searchSheet();
  else if(a==='fitreset'){try{localStorage.removeItem('an_fit');localStorage.removeItem('an_lift')}catch(e){}document.documentElement.style.removeProperty('--lift');if(window.fitApp)window.fitApp();const f=fitVal();const rf=$('r-fit'),rl=$('r-lift');if(rf){rf.value=f;rf.style.setProperty('--p',(100*f/70)+'%');$('v-fit').textContent=f}if(rl){rl.value=0;rl.style.setProperty('--p','0%');$('v-lift').textContent='0'}toast('Bottom bar reset')}
  else if(a==='guide')guideSheet();
+ else if(a==='addud')pickUserDoc();
+ else if(a==='udel')udDelete(b.dataset.id,b);
+ else if(a==='checkin')checkinSheet();
  else if(a==='pack')packSheet();
  else if(a==='kidsw'){lsSet('an_kiana',b.checked?'1':'0');render('keep')}
  else if(a==='fit'){const v=b.dataset.v;try{localStorage.setItem('an_fit',v)}catch(e){}if(window.fitApp)window.fitApp();document.querySelectorAll('[data-a="fit"]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===v)))}
@@ -561,7 +632,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('submit',e=>{e.preventDefault();if(e.target.id!=='exf')return;
  const a=parseFloat($('exa').value);if(!(a>0))return;const n=ist();const id='e'+Date.now().toString(36)+Math.random().toString(36).slice(2,4);
  const doc={a,c:$('exc').value,n:$('exn').value.trim().slice(0,120),d:n.d+' Oct',by:DEV(),at:Date.now()};ST.syn.exp[id]=doc;queueSet('expenses/'+id,doc);viewMoney();toast('Added')});
-document.addEventListener('input',e=>{try{const t=e.target;if(t.dataset&&t.dataset.pk){let o={};try{o=JSON.parse(localStorage.getItem('an_pk'+t.dataset.pk)||'{}')}catch(x){}o[t.dataset.i]=t.checked?1:0;lsSet('an_pk'+t.dataset.pk,JSON.stringify(o));window.haptic&&window.haptic();return}if(t.id==='r-fit'||t.id==='r-lift'){const fit=t.id==='r-fit',v=t.value;lsSet(fit?'an_fit':'an_lift',v);$(fit?'v-fit':'v-lift').textContent=v;t.style.setProperty('--p',(100*v/t.max)+'%');if(fit){if(window.fitApp)window.fitApp()}else document.documentElement.style.setProperty('--lift',v+'px');haptic()}if(e.target.id==='sq')doSearch(e.target.value);if(e.target.id==='med')lsSet('an_med',e.target.value)}catch(x){}});
+document.addEventListener('input',e=>{try{const t=e.target;if(t.dataset&&t.dataset.cl){let o={};try{o=JSON.parse(localStorage.getItem('an_cl'+t.dataset.cl)||'{}')}catch(x){}o[t.dataset.i]=t.checked?1:0;lsSet('an_cl'+t.dataset.cl,JSON.stringify(o));window.haptic&&window.haptic();return}if(t.dataset&&t.dataset.pk){let o={};try{o=JSON.parse(localStorage.getItem('an_pk'+t.dataset.pk)||'{}')}catch(x){}o[t.dataset.i]=t.checked?1:0;lsSet('an_pk'+t.dataset.pk,JSON.stringify(o));window.haptic&&window.haptic();return}if(t.id==='r-fit'||t.id==='r-lift'){const fit=t.id==='r-fit',v=t.value;lsSet(fit?'an_fit':'an_lift',v);$(fit?'v-fit':'v-lift').textContent=v;t.style.setProperty('--p',(100*v/t.max)+'%');if(fit){if(window.fitApp)window.fitApp()}else document.documentElement.style.setProperty('--lift',v+'px');haptic()}if(e.target.id==='sq')doSearch(e.target.value);if(e.target.id==='med')lsSet('an_med',e.target.value)}catch(x){}});
 document.addEventListener('change',e=>{
  if(e.target.id==='pvd'||e.target.id==='pvt'){const day=+$('pvd').value;const v=normT($('pvt').value)||'08:00';ST.ui.pv={day,m:mins(v)};sel=day;save();render('saved')}
  if(e.target.id==='env'){const v=Math.max(0,+e.target.value||0);ST.syn.meta.budget=v;queueSet('meta/budget',{v,at:Date.now()});viewMoney()}});
@@ -609,6 +680,6 @@ document.addEventListener('touchmove',e=>{if(e.touches.length>1&&e.cancelable&&!
 const pill=document.createElement('div');pill.className='offpill';pill.textContent='Offline. Changes are saved on this phone and sync later.';pill.hidden=navigator.onLine!==false;document.body.appendChild(pill);
 const up=()=>{pill.hidden=navigator.onLine!==false};window.addEventListener('online',up);window.addEventListener('offline',up)})();
 try{lsSet('an_badge','');if(navigator.clearAppBadge)navigator.clearAppBadge()}catch(e){}
-window.__app={loadExtras,get ST(){return ST},get healed(){return healed},heal,flush,poll,itemsFor,sunTimes,spendChart,get sync(){return SYNC},get trip(){return TRIP}};
+window.__app={get book(){return BOOK},get flights(){return flightsAll()},loadExtras,get ST(){return ST},get healed(){return healed},heal,flush,poll,itemsFor,sunTimes,spendChart,get sync(){return SYNC},get trip(){return TRIP}};
 boot();
 })();
