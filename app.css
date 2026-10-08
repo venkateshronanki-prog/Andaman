@@ -286,3 +286,5 @@ html[data-fs="xl"] .cover .meta{min-height:92px}
 .ptr{position:absolute;left:50%;top:6px;transform:translate(-50%,-60px);width:34px;height:34px;border-radius:50%;background:var(--glass);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid var(--hi);display:grid;place-items:center;font-size:16px;z-index:5;pointer-events:none;transition:transform .2s ease,opacity .2s}
 .ptr.spin{animation:spin .8s linear infinite}
 @keyframes spin{to{rotate:360deg}}
+
+.fitg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.fitg .btn{padding:10px 2px;font-size:12.5px}.fitg .btn[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:transparent}
