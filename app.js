@@ -207,7 +207,7 @@ function thumb(it){const ph=getPh(it.id),k=kindOf(it.x);
 function installBanner(){const standalone=window.navigator.standalone||matchMedia('(display-mode: standalone)').matches;if(standalone||ST.ui.nohint)return'';
  return `<div class="install"><div><b>Install this app.</b> Tap the Share button in Safari, then Add to Home Screen. It then opens full screen and works with no signal.</div><button data-a="hint">Got it</button></div>`}
 function viewToday(){
- const c=clock();if(sel==null||!dayOf(sel))sel=c.day;const d=dayOf(sel);const its=itemsFor(sel);const dn=new Set(ST.done);
+ const c=clock();if(sel==null||!dayOf(sel))sel=c.day;const d=dayOf(sel);const its=itemsFor(sel);const dn=new Set(ST.done);for(const kk in ST.syn.chk)if(kk.startsWith('a_')){const id0=kk.slice(2);ST.syn.chk[kk]?dn.add(id0):dn.delete(id0)}
  let h=`<div class="top"><div><div class="eyebrow">${dow(d)}</div><h1>${esc(d.title)}</h1></div></div>${installBanner()}${stat()}`;
  h+=`<div class="chips" role="group" aria-label="Pick a day">${DAYS.map(x=>`<button class="chip${x.n===c.day&&(c.live||c.pv)?' today':''}" data-d="${x.n}" aria-pressed="${x.n===sel}"><b>${x.n}</b><span>${x.dow}</span></button>`).join('')}</div>`;
  if(!c.live&&!c.pv)h+=`<div class="note" style="margin:0 0 14px;background:var(--sky)"><b style="color:var(--sky-s)">${c.before?`Trip starts in ${c.diff} day${c.diff===1?'':'s'}.`:'Trip is over.'}</b> The Now card goes live on Oct 10. <button class="btn ghost" data-a="pvon" style="padding:4px 10px;min-height:0;border-radius:10px">Preview a time</button></div>`;
@@ -362,7 +362,7 @@ document.addEventListener('click',e=>{
  if(b.dataset.t){tab=b.dataset.t;render('saved');return}
  if(b.dataset.d){sel=+b.dataset.d;render('saved');return}
  if(b.dataset.go){sel=+b.dataset.go;tab='today';render('saved');return}
- if(b.dataset.k){const k=b.dataset.k;const s=new Set(ST.done);s.has(k)?s.delete(k):s.add(k);ST.done=[...s];save();b.closest('li').classList.toggle('done');return}
+ if(b.dataset.k){const k=b.dataset.k;const nv=!b.closest('li').classList.contains('done');const ck='a_'+k.replace(/[^\w-]/g,'_');ST.done=ST.done.filter(x=>x!==k);ST.syn.chk[ck]=nv;queueSet('checks/'+ck,{v:nv,at:Date.now()});save();b.closest('li').classList.toggle('done',nv);return}
  if(b.dataset.cp){const v=b.dataset.cp;const ok=()=>toast('Copied '+v);try{navigator.clipboard.writeText(v).then(ok,()=>toast(v))}catch(x){toast(v)}return}
  if(b.dataset.del){const id=b.dataset.del;delete ST.syn.exp[id];queueDel('expenses/'+id);viewMoney();return}
  if(b.dataset.doc){docViewer(b.dataset.doc);return}
