@@ -357,8 +357,11 @@ function settingsSheet(){const c=cfg();const fromFile=!!(window.FB&&window.FB.pr
  ${fromFile?'':`<label>Firebase project ID<input class="in" id="s-p" autocapitalize="none" autocorrect="off" spellcheck="false" value="${esc((ST.cfg&&ST.cfg.projectId)||'')}"></label><label>Firebase web API key<input class="in" id="s-k" autocapitalize="none" autocorrect="off" spellcheck="false" value="${esc((ST.cfg&&ST.cfg.apiKey)||'')}"></label><div class="row"><button class="btn" data-a="savecfg">Save and connect</button></div>`}
  <div class="row"><button class="btn ghost" data-a="check">Check connection</button><button class="btn plain" data-a="reload">Reload latest version</button></div>
  <div class="err" id="s-e" hidden></div>
- <div><div class="eyebrow" style="margin-bottom:8px">Bottom bar position (this phone)</div><div class="fitg">${[['','Standard'],['24','Lower 1'],['40','Lower 2'],['62','Lower 3']].map(x=>`<button class="btn ghost" data-a="fit" data-v="${x[0]}" aria-pressed="${(lsGet('an_fit')||'')===x[0]}">${x[1]}</button>`).join('')}</div><p class="route" style="margin:6px 0 0">If a blank strip shows under the bottom bar, tap Lower 1, 2 or 3 until it sits at the bottom. Changes apply instantly.</p></div>
- <div><div class="eyebrow" style="margin-bottom:8px">Child mode (this phone)</div><button class="btn ghost" data-a="kid" style="width:100%">Child mode: ${kidOn()?'ON':'OFF'}</button><p class="route" style="margin:6px 0 0">Adds a short tip for your child under each activity.</p></div>
+ <div><div class="eyebrow" style="margin-bottom:8px">Bottom bar (this phone)</div>
+ <div class="srow"><span>Stretch screen down</span><span id="v-fit">${fitVal()}</span></div><input class="ios" type="range" id="r-fit" min="0" max="70" step="1" value="${fitVal()}" style="--p:${100*fitVal()/70}%">
+ <div class="srow" style="margin-top:6px"><span>Lift bar up</span><span id="v-lift">${lsGet('an_lift','0')}</span></div><input class="ios" type="range" id="r-lift" min="0" max="40" step="1" value="${lsGet('an_lift','0')}" style="--p:${100*lsGet('an_lift','0')/40}%">
+ <p class="route" style="margin:6px 0 0">Stretch fills a blank strip under the bar. Lift raises the bar if it is cut off. Both apply instantly.</p></div>
+ <div class="swrow"><div><b>Child mode</b><p class="route" style="margin:2px 0 0">Adds a short tip for your child under each activity.</p></div><input class="sw" type="checkbox" switch data-a="kidsw" ${kidOn()?'checked':''} aria-label="Child mode"></div>
  <div><div class="eyebrow" style="margin-bottom:8px">Text size (this phone)</div><div class="fsz" role="group" aria-label="Text size">${[['s','Small','14px'],['m','Normal','17px'],['l','Large','20px'],['xl','Extra large','23px']].map(([k,l,s])=>`<button data-fs="${k}" aria-pressed="${k===curFs()}"><span style="font-size:${s};display:block">Aa</span><span style="font-size:11px">${l}</span></button>`).join('')}</div></div>
  <div><div class="eyebrow" style="margin-bottom:8px">Colour mode (this phone)</div><div class="pals" role="group" aria-label="Colour mode">${Object.keys(window.PALS).map(k=>`<button class="pal" data-pal="${k}" aria-pressed="${k===curPal()}"><i><b style="background:${window.PALS[k][1]}"></b><b style="background:${window.PALS[k][3]}"></b><b style="background:${window.PALS[k][2]}"></b></i>${window.PALS[k][0]}</button>`).join('')}</div></div>
  <div class="row"><button class="btn plain" data-a="lock">Lock app (forget passphrase)</button><button class="btn plain" data-a="close">Close</button></div>
@@ -366,6 +369,7 @@ function settingsSheet(){const c=cfg();const fromFile=!!(window.FB&&window.FB.pr
 async function checkConn(){const er=$('s-e');er.hidden=false;er.style.color='var(--ink)';er.textContent='Checking…';try{await api('GET','items',[['pageSize','1']]);SYNC.live=true;SYNC.denied=false;er.textContent='Connected. Sync is working.';flush();poll()}catch(e){er.style.color='var(--bad)';er.textContent=e&&e.code==='denied'?'Firebase refused the request. Check the rules and API key.':e&&e.code==='nocfg'?'Add the project ID and API key first.':'Could not reach Firebase. Check your connection.'}}
 
 /* ================= extras: maps, sun and weather, countdown, child tips, emergency, search, reminders, spending ================= */
+function fitVal(){const v=parseInt(lsGet('an_fit','0'),10);return isFinite(v)&&v>0?v:(lsGet('an_fit','')==='fill'?62:0)}
 function lsGet(k,d){try{const v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}}
 function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 
@@ -484,6 +488,7 @@ document.addEventListener('click',e=>{
  else if(a==='settings')settingsSheet();
  else if(a==='sos')sosSheet();
  else if(a==='search')searchSheet();
+ else if(a==='kidsw'){lsSet('an_kiana',b.checked?'1':'0');render('keep')}
  else if(a==='fit'){const v=b.dataset.v;try{localStorage.setItem('an_fit',v)}catch(e){}if(window.fitApp)window.fitApp();document.querySelectorAll('[data-a="fit"]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===v)))}
  else if(a==='kid'){lsSet('an_kiana',kidOn()?'0':'1');b.textContent='Child mode: '+(kidOn()?'ON':'OFF');render('keep')}
  else if(a==='savecfg'){const p=$('s-p').value.trim(),k=$('s-k').value.trim();if(p&&k){ST.cfg={projectId:p,apiKey:k};save();SYNC.denied=false;checkConn()}}
@@ -497,7 +502,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('submit',e=>{e.preventDefault();if(e.target.id!=='exf')return;
  const a=parseFloat($('exa').value);if(!(a>0))return;const n=ist();const id='e'+Date.now().toString(36)+Math.random().toString(36).slice(2,4);
  const doc={a,c:$('exc').value,n:$('exn').value.trim().slice(0,120),d:n.d+' Oct',by:DEV(),at:Date.now()};ST.syn.exp[id]=doc;queueSet('expenses/'+id,doc);viewMoney();toast('Added')});
-document.addEventListener('input',e=>{try{if(e.target.id==='sq')doSearch(e.target.value);if(e.target.id==='med')lsSet('an_med',e.target.value)}catch(x){}});
+document.addEventListener('input',e=>{try{const t=e.target;if(t.id==='r-fit'||t.id==='r-lift'){const fit=t.id==='r-fit',v=t.value;lsSet(fit?'an_fit':'an_lift',v);$(fit?'v-fit':'v-lift').textContent=v;t.style.setProperty('--p',(100*v/t.max)+'%');if(fit){if(window.fitApp)window.fitApp()}else document.documentElement.style.setProperty('--lift',v+'px');haptic()}if(e.target.id==='sq')doSearch(e.target.value);if(e.target.id==='med')lsSet('an_med',e.target.value)}catch(x){}});
 document.addEventListener('change',e=>{
  if(e.target.id==='pvd'||e.target.id==='pvt'){const day=+$('pvd').value;const v=normT($('pvt').value)||'08:00';ST.ui.pv={day,m:mins(v)};sel=day;save();render('saved')}
  if(e.target.id==='env'){const v=Math.max(0,+e.target.value||0);ST.syn.meta.budget=v;queueSet('meta/budget',{v,at:Date.now()});viewMoney()}});
@@ -532,6 +537,9 @@ document.addEventListener('touchstart',e=>{const p=P();ok=!!p&&p.contains(e.targ
 document.addEventListener('touchend',e=>{if(!ok)return;ok=false;const t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;if(Date.now()-t0>700)return;
 if(pull&&dy>90&&Math.abs(dx)<50){toast('Syncing…');try{flush();poll()}catch(_){}return}
 if(Math.abs(dx)>70&&Math.abs(dy)<45&&tab==='today'){const i=DAYS.findIndex(d=>d.n===sel),j=i+(dx<0?1:-1);if(DAYS[j]){sel=DAYS[j].n;enter();render('keep')}}},{passive:true})})();
+(function(){let L=null;function mk(){if(L)return;L=document.createElement('label');L.className='hapt';L.innerHTML='<input type="checkbox" switch tabindex="-1" aria-hidden="true">';document.body.appendChild(L)}
+window.haptic=function(){try{mk();L.click()}catch(e){}try{if(navigator.vibrate)navigator.vibrate(8)}catch(e){}};
+document.addEventListener('pointerdown',e=>{if(e.target.closest&&e.target.closest('button,.chip,nav button')&&!e.target.closest('input'))window.haptic()},{passive:true})})();
 window.__app={loadExtras,get ST(){return ST},get healed(){return healed},heal,flush,poll,itemsFor,sunTimes,spendChart,get sync(){return SYNC},get trip(){return TRIP}};
 boot();
 })();

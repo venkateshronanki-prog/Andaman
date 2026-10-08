@@ -22,6 +22,7 @@ else{r.setAttribute('data-pal',n);r.setAttribute('data-theme',n==='night'?'dark'
 var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',window.BARS[n])}catch(e){}};
 try{window.applyPal(localStorage.getItem('an_pal')||'lagoon')}catch(e){}
 window.fitApp=function(){try{var sa=window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);var r=document.documentElement;
+try{var lf=localStorage.getItem('an_lift');if(lf)document.documentElement.style.setProperty('--lift',lf+'px')}catch(e){}
 var fit='';try{fit=localStorage.getItem('an_fit')||''}catch(e){}
 var ex=fit==='fill'?-1:parseInt(fit,10);
 if(!sa||!(ex>0||ex===-1)){r.classList.remove('sa');return}
