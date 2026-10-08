@@ -211,6 +211,10 @@ function glance(its,dn,isNow,c){try{const n=its.length,k=its.filter(i=>dn.has(i.
 let nx=its.find(i=>!dn.has(i.id)&&(!isNow||hmn(i.t)>=c.m))||its.find(i=>!dn.has(i.id));
 const txt=!n?'Nothing planned yet':(k===n?'All done. Enjoy the rest of the day.':nx?`Next ${esc(nx.t||'')} ${esc(String(nx.x||'').slice(0,46))}`:'');
 return `<div class="glance"><div class="gl-n"><b>${k}</b>/${n}<span>done</span></div><div class="gl-t">${txt}</div><div class="gl-bs">${flightsAll().some(f=>f.day===sel)?'<button class="btn ghost gl-b" data-a="checkin">Check-in</button>':''}<button class="btn ghost gl-b" data-a="pack">Pack</button></div></div>`}catch(e){return''}}
+const TA_APP='https://apps.apple.com/in/app/tripadvisor-plan-book-trips/id284876795';
+const TA_PLACE={10:'Khopoli',11:'Andheri East Mumbai',12:'Port Blair',13:'Havelock Island',14:'Havelock Island',15:'Havelock Island',16:'Havelock Island',17:'Neil Island Andaman',18:'Port Blair',19:'Port Blair',20:'Port Blair'};
+function taCard(n){const p=TA_PLACE[n]||'Andaman',q=encodeURIComponent(p);
+ return `<div class="card ta"><div class="eyebrow" style="margin-bottom:8px">Activities and food · ${esc(p)}</div><div class="tarow"><a class="btn ghost" data-ta="1" href="https://www.tripadvisor.in/Search?q=${q}%20things%20to%20do" target="_blank" rel="noopener noreferrer">Things to do</a><a class="btn ghost" data-ta="1" href="https://www.tripadvisor.in/Search?q=${q}%20restaurants" target="_blank" rel="noopener noreferrer">Where to eat</a><a class="btn ghost" href="${TA_APP}" target="_blank" rel="noopener noreferrer">TripAdvisor app</a></div></div>`}
 function viewToday(){
  const c=clock();if(sel==null||!dayOf(sel))sel=c.day;const d=dayOf(sel);const its=itemsFor(sel);const dn=new Set(ST.done);for(const kk in ST.syn.chk)if(kk.startsWith('a_')){const id0=kk.slice(2);ST.syn.chk[kk]?dn.add(id0):dn.delete(id0)}
  let h=`<div class="top"><div><div class="eyebrow">${dow(d)}</div><h1>${esc(d.title)}</h1></div></div>${installBanner()}${stat()}`;
@@ -221,6 +225,7 @@ function viewToday(){
  if(isNow)h+=`<div id="leavec"></div><section class="now" style="${theme(d)}" id="nowc"></section>`;
  const cover=getPh('cover-'+sel);
  h+=`<div class="cover" style="${theme(d)}"><div class="art">${cover?`<img src="${cover}" alt="">`:SC[d.sc]||''}</div><button class="photo" data-ph="cover-${sel}" data-q="${esc(d.title)}">${cover?'Change photo':'Add photo'}</button><div class="meta"><div style="display:flex;gap:6px;flex-wrap:wrap">${early(its)?'<span class="pill rose">Early start '+its[0].t+'</span>':''}<span class="pill mint">${esc(d.stay.replace(/ \(.*\)/,''))}</span></div></div></div><div class="dinfo" id="dinfo"></div>${glance(its,dn,isNow,c)}`;
+ h+=taCard(sel);
  h+=`<div class="addrow"><button class="btn" data-a="add">+ Add activity</button></div>`;
  h+=`<ol class="tl" style="${theme(d)}">${its.length?its.map(it=>row(it,dn)).join(''):'<li><span></span><div class="x" style="color:var(--soft)">No activities yet. Tap Add activity.</div><span></span></li>'}</ol>`;
  if(d.note)h+=`<div class="note"><b>Note.</b> ${esc(d.note)}</div>`;
@@ -452,7 +457,7 @@ function paintLeave(){try{const el=$('leavec');if(!el)return;const c=clock(),its
  el.innerHTML=`<div class="leave ${tone}"><b>Be ready in ${t}</b><span>${nx.t} · ${esc(nx.x.slice(0,90))}</span></div>`}catch(e){}}
 /* emergency card */
 /* flight check-in: IndiGo web check-in link, window timer and DigiYatra steps */
-const BUILD='build 9 Oct 2026 B';
+const BUILD='build 9 Oct 2026 C';
 const IGO_URL='https://www.goindigo.in/web-check-in.html',DY_URL='https://apps.apple.com/in/app/digi-yatra/id6479873321';
 function flightsAll(){const out=[];try{for(const d of DAYS){const its=itemsFor(d.n);const hmn=t=>{const m=/^(\d{1,2}):(\d{2})/.exec(t||'');return m?(+m[1])*60+(+m[2]):-1};
  for(const it of its){const m=/IndiGo\s+(6E\s*\d+)\s+departs\s+([^,(]+)/i.exec(it.x||'');const t=/^(\d{1,2}):(\d{2})/.exec(it.t||'');if(!m||!t)continue;
@@ -573,6 +578,7 @@ function spendChart(ex,env,spent){try{if(!ex.length)return'';const by={};ex.forE
 /* ================= events ================= */
 document.addEventListener('click',e=>{
  try{
+ const ta=e.target.closest('a[data-ta]');if(ta&&!navigator.onLine){e.preventDefault();toast('You are offline. Open this when you have signal.');return}
  const z=e.target.closest('[data-z]');if(z&&!e.target.closest('button')){z.classList.toggle('z');return}
  if(e.target.id==='ovl'){if(!$('layer').querySelector('[data-conf]'))closeLayer();return}
  const b=e.target.closest('button,input,a');if(!b)return;const a=b.dataset.a;
