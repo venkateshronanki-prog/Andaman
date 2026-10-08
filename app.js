@@ -272,6 +272,7 @@ function viewMoney(){const ex=expList();const env=typeof ST.syn.meta.budget==='n
 const VIEWS={today:viewToday,trip:viewTrip,book:viewBook,list:viewList,money:viewMoney};
 let errs=0;
 const scKey=()=>tab==='today'?'today-'+sel:tab;
+function enter(){const p=$('pane');if(!p)return;p.classList.remove('enter');void p.offsetWidth;p.classList.add('enter');clearTimeout(enter.t);enter.t=setTimeout(()=>p.classList.remove('enter'),320)}
 function centerChip(){try{const c=document.querySelector('.chips');if(!c)return;const a=c.querySelector('[aria-pressed="true"]');if(!a)return;c.scrollLeft+=(a.getBoundingClientRect().left-c.getBoundingClientRect().left)-(c.clientWidth-a.offsetWidth)/2}catch(e){}}
 function render(restore){const p=$('pane');drawNav();
  try{VIEWS[tab]()}catch(e){errs++;fixed(e);try{VIEWS[tab]()}catch(e2){if(errs<4){sel=null;tab='today';try{VIEWS.today()}catch(e3){p.innerHTML='<div class="card empty">We repaired the saved data. Close and reopen the app if this stays blank.</div>'}}}}
@@ -347,6 +348,7 @@ function pickPhoto(id){const pk=$('pick');pk.onchange=()=>{const f=pk.files&&pk.
 async function rmPhoto(id){await setPh(id,null);delete SYNC.phut[id];queueDel('photos/'+id);closeLayer();render('keep');toast('Photo removed')}
 function curPal(){try{return localStorage.getItem('an_pal')||'lagoon'}catch(e){return'lagoon'}}
 function setPal(n){try{localStorage.setItem('an_pal',n)}catch(e){}if(window.applyPal)window.applyPal(n);document.querySelectorAll('.pal').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.pal===n)))}
+function screenInfo(){try{const p=document.createElement('div');p.style.cssText='position:fixed;top:0;visibility:hidden;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)';document.body.appendChild(p);const cs=getComputedStyle(p),t=cs.paddingTop,b=cs.paddingBottom;p.remove();return 'Screen '+screen.width+'x'+screen.height+' \u00b7 view '+innerWidth+'x'+innerHeight+' \u00b7 edges '+t+' / '+b+(document.documentElement.classList.contains('sa')?' \u00b7 fitted':'')}catch(e){return''}}
 function curFs(){try{return localStorage.getItem('an_fs')||'m'}catch(e){return'm'}}
 function setFs(n){try{localStorage.setItem('an_fs',n)}catch(e){}const r=document.documentElement;if(n==='m')r.removeAttribute('data-fs');else r.setAttribute('data-fs',n);document.querySelectorAll('.fsz button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.fs===n)))}
 function settingsSheet(){const c=cfg();const fromFile=!!(window.FB&&window.FB.projectId&&window.FB.apiKey);
@@ -359,7 +361,7 @@ function settingsSheet(){const c=cfg();const fromFile=!!(window.FB&&window.FB.pr
  <div><div class="eyebrow" style="margin-bottom:8px">Text size (this phone)</div><div class="fsz" role="group" aria-label="Text size">${[['s','Small','14px'],['m','Normal','17px'],['l','Large','20px'],['xl','Extra large','23px']].map(([k,l,s])=>`<button data-fs="${k}" aria-pressed="${k===curFs()}"><span style="font-size:${s};display:block">Aa</span><span style="font-size:11px">${l}</span></button>`).join('')}</div></div>
  <div><div class="eyebrow" style="margin-bottom:8px">Colour mode (this phone)</div><div class="pals" role="group" aria-label="Colour mode">${Object.keys(window.PALS).map(k=>`<button class="pal" data-pal="${k}" aria-pressed="${k===curPal()}"><i><b style="background:${window.PALS[k][1]}"></b><b style="background:${window.PALS[k][3]}"></b><b style="background:${window.PALS[k][2]}"></b></i>${window.PALS[k][0]}</button>`).join('')}</div></div>
  <div class="row"><button class="btn plain" data-a="lock">Lock app (forget passphrase)</button><button class="btn plain" data-a="close">Close</button></div>
- <p class="route" style="margin:0">Version 1 · ${DEV()}</p>`)}
+ <p class="route" style="margin:0">Version 2 · ${DEV()}<br>${screenInfo()}</p>`)}
 async function checkConn(){const er=$('s-e');er.hidden=false;er.style.color='var(--ink)';er.textContent='Checking…';try{await api('GET','items',[['pageSize','1']]);SYNC.live=true;SYNC.denied=false;er.textContent='Connected. Sync is working.';flush();poll()}catch(e){er.style.color='var(--bad)';er.textContent=e&&e.code==='denied'?'Firebase refused the request. Check the rules and API key.':e&&e.code==='nocfg'?'Add the project ID and API key first.':'Could not reach Firebase. Check your connection.'}}
 
 /* ================= extras: maps, sun and weather, countdown, child tips, emergency, search, reminders, spending ================= */
@@ -405,8 +407,9 @@ async function wxFetch(){if(WX.busy||!navigator.onLine)return;if(WX.d&&Date.now(
 function paintInfo(){try{const el=$('dinfo');if(!el)return;const n=sel,loc=dayLoc(n),[sr,ss]=sunTimes(loc[0],loc[1],2026,9,n);
  let h=`<span class="pill butter">Sunrise ${hm(sr)}</span><span class="pill peach">Sunset ${hm(ss)}</span>`;
  const w=WX.d&&WX.d[n<=11?'mum':'pb']&&WX.d[n<=11?'mum':'pb']['2026-10-'+n];
+ if(!w)h+=`<span class="pill muted">Forecast appears when online</span>`;
  if(w)h+=`<span class="pill sky">${wxName(w[0])} ${w[2]}° to ${w[1]}°C${w[3]!=null?' · rain '+w[3]+'%':''}</span>`;
- el.innerHTML=h}catch(e){}}
+ el.innerHTML=h||''}catch(e){}}
 /* leave-now countdown */
 const CRIT=/ferry|makruzz|nautika|flight|indigo|boarding|bag drop|jetty|check out|leave|cab (to|from)|light & sound|report at|at the .* counter/i;
 function paintLeave(){try{const el=$('leavec');if(!el)return;const c=clock(),its=itemsFor(sel);
@@ -451,8 +454,8 @@ document.addEventListener('click',e=>{
  if(e.target.id==='ovl'){if(!$('layer').querySelector('[data-conf]'))closeLayer();return}
  const b=e.target.closest('button,input,a');if(!b)return;const a=b.dataset.a;
  if(b.tagName==='A')return;
- if(b.dataset.t){tab=b.dataset.t;render('saved');return}
- if(b.dataset.d){sel=+b.dataset.d;render('saved');return}
+ if(b.dataset.t){tab=b.dataset.t;enter();render('saved');return}
+ if(b.dataset.d){sel=+b.dataset.d;enter();render('keep');return}
  if(b.dataset.pal){setPal(b.dataset.pal);return}
  if(b.dataset.sg){goSearch(b.dataset.sg);return}
  if(b.dataset.fs){setFs(b.dataset.fs);return}
