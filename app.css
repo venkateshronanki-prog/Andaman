@@ -183,7 +183,7 @@ textarea.code{width:100%;min-height:90px;border:1px solid var(--line);border-rad
 
 html{height:100%;-webkit-text-size-adjust:100%}
 body{height:100%;overflow:hidden;overscroll-behavior:none;position:fixed;inset:0;width:100%}
-#bar{position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:#13323F;z-index:60}
+#bar{position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:var(--bar,#13323F);z-index:60}
 .viewer{padding-top:0}
 .lock{display:grid;place-items:center;height:100%;padding:24px;text-align:center}
 .lock .card{max-width:380px;width:100%;display:grid;gap:12px;padding:22px}
@@ -198,3 +198,15 @@ body{height:100%;overflow:hidden;overscroll-behavior:none;position:fixed;inset:0
 .ph-a{display:grid;gap:8px}
 .ph-a a{text-decoration:none;display:block;text-align:center}
 .sheet a.btn{display:block;text-align:center;text-decoration:none}
+
+/* colour modes: pick in Settings. Lagoon is the original (follows the phone's light/dark). */
+:root[data-pal="blush"]{--bg:#FFF6F7;--card:#FFFFFF;--ink:#4A2A35;--soft:#86606C;--line:#F3DCE1;--accent:#B8445F;--accent-ink:#FFFFFF;--bar:#5A2A3A;color-scheme:light}
+:root[data-pal="mint"]{--bg:#F4FBF6;--card:#FFFFFF;--ink:#1F4535;--soft:#5E8070;--line:#DCEEE3;--accent:#2A7F5A;--accent-ink:#FFFFFF;--bar:#1F4A38;color-scheme:light}
+:root[data-pal="lavender"]{--bg:#F8F6FD;--card:#FFFFFF;--ink:#33295A;--soft:#6E659A;--line:#E6E0F5;--accent:#6A4FC0;--accent-ink:#FFFFFF;--bar:#2F2760;color-scheme:light}
+:root[data-pal="sunset"]{--bg:#FFF8F2;--card:#FFFFFF;--ink:#4D3224;--soft:#8A6A58;--line:#F5E3D5;--accent:#BC5429;--accent-ink:#FFFFFF;--bar:#5A3322;color-scheme:light}
+:root[data-pal="night"]{--bar:#0B1820}
+.pals{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pal{display:grid;gap:6px;justify-items:center;padding:10px 6px;border-radius:16px;border:2px solid var(--line);background:var(--card);font-size:12.5px;font-weight:600}
+.pal[aria-pressed="true"]{border-color:var(--accent)}
+.pal i{display:flex;width:44px;height:28px;border-radius:9px;overflow:hidden;border:1px solid rgba(0,0,0,.08)}
+.pal i b{flex:1}

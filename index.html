@@ -13,6 +13,15 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
 <title>Andaman Trip</title>
+<script>
+window.PALS={lagoon:['Lagoon','#F7FBFB','#1F7A8C','#DCEFF8'],blush:['Blush','#FFF6F7','#B8445F','#FADCE0'],mint:['Mint','#F4FBF6','#2A7F5A','#D8F1E4'],lavender:['Lavender','#F8F6FD','#6A4FC0','#E9E2F8'],sunset:['Sunset','#FFF8F2','#BC5429','#FFE4D6'],night:['Night','#0F1D24','#6CC3D4','#1F3A4D']};
+window.BARS={lagoon:'#13323F',blush:'#5A2A3A',mint:'#1F4A38',lavender:'#2F2760',sunset:'#5A3322',night:'#0B1820'};
+window.applyPal=function(n){try{if(!window.PALS[n])n='lagoon';var r=document.documentElement;
+if(n==='lagoon'){r.removeAttribute('data-pal');r.removeAttribute('data-theme')}
+else{r.setAttribute('data-pal',n);r.setAttribute('data-theme',n==='night'?'dark':'light')}
+var m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',window.BARS[n])}catch(e){}};
+try{window.applyPal(localStorage.getItem('an_pal')||'lagoon')}catch(e){}
+</script>
 <link rel="stylesheet" href="app.css">
 </head>
 <body>

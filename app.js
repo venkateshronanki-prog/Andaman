@@ -271,12 +271,14 @@ function viewMoney(){const ex=expList();const env=typeof ST.syn.meta.budget==='n
 const VIEWS={today:viewToday,trip:viewTrip,book:viewBook,list:viewList,money:viewMoney};
 let errs=0;
 const scKey=()=>tab==='today'?'today-'+sel:tab;
+function centerChip(){try{const c=document.querySelector('.chips');if(!c)return;const a=c.querySelector('[aria-pressed="true"]');if(!a)return;c.scrollLeft+=(a.getBoundingClientRect().left-c.getBoundingClientRect().left)-(c.clientWidth-a.offsetWidth)/2}catch(e){}}
 function render(restore){const p=$('pane');drawNav();
  try{VIEWS[tab]()}catch(e){errs++;fixed(e);try{VIEWS[tab]()}catch(e2){if(errs<4){sel=null;tab='today';try{VIEWS.today()}catch(e3){p.innerHTML='<div class="card empty">We repaired the saved data. Close and reopen the app if this stays blank.</div>'}}}}
  const k=scKey();
  if(restore==='keep'){}
  else if(restore==='saved'){p.scrollTop=(ST.ui.sc&&ST.ui.sc[k])||0}
  else{p.scrollTop=0;if(tab==='today'){const cl=document.querySelector('.tl li.cur');if(cl)setTimeout(()=>cl.scrollIntoView({block:'center'}),60)}}
+ centerChip();requestAnimationFrame(centerChip);
  ST.ui.tab=tab;ST.ui.sel=sel;ST.ui.day=ist().d;save()}
 let lastTop=0;
 function softRender(){if(softRender.r)return;softRender.r=requestAnimationFrame(()=>{softRender.r=0;if($('layer').childElementCount||!D)return;const p=$('pane'),t=p.scrollTop;render('keep');p.scrollTop=t})}
@@ -342,12 +344,15 @@ function pickPhoto(id){const pk=$('pick');pk.onchange=()=>{const f=pk.files&&pk.
   for(let i=0;i<6;i++){cv.width=w;cv.height=Math.max(1,Math.round(im.height*w/im.width));cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);url=cv.toDataURL('image/jpeg',q);if(url.length<200000)break;w=Math.round(w*.8);q=Math.max(.4,q-.05)}
   await setPh(id,url);queueSet('photos/'+id,{img:url,by:DEV(),at:Date.now()});closeLayer();render('keep');toast('Photo saved')};im.src=r.result};r.readAsDataURL(f);pk.value=''};pk.click()}
 async function rmPhoto(id){await setPh(id,null);delete SYNC.phut[id];queueDel('photos/'+id);closeLayer();render('keep');toast('Photo removed')}
+function curPal(){try{return localStorage.getItem('an_pal')||'lagoon'}catch(e){return'lagoon'}}
+function setPal(n){try{localStorage.setItem('an_pal',n)}catch(e){}if(window.applyPal)window.applyPal(n);document.querySelectorAll('.pal').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.pal===n)))}
 function settingsSheet(){const c=cfg();const fromFile=!!(window.FB&&window.FB.projectId&&window.FB.apiKey);
  openLayer(`<h2>Settings</h2>
  <div class="cmp"><div><small>Sync</small>${c?(SYNC.denied?'Blocked. Check the Firebase rules.':SYNC.live?'Connected. Changes are shared.':'Offline right now. Changes are saved here and sent later.'):'Not set up. The app works on this phone only.'}</div></div>
  ${fromFile?'':`<label>Firebase project ID<input class="in" id="s-p" autocapitalize="none" autocorrect="off" spellcheck="false" value="${esc((ST.cfg&&ST.cfg.projectId)||'')}"></label><label>Firebase web API key<input class="in" id="s-k" autocapitalize="none" autocorrect="off" spellcheck="false" value="${esc((ST.cfg&&ST.cfg.apiKey)||'')}"></label><div class="row"><button class="btn" data-a="savecfg">Save and connect</button></div>`}
  <div class="row"><button class="btn ghost" data-a="check">Check connection</button><button class="btn plain" data-a="reload">Reload latest version</button></div>
  <div class="err" id="s-e" hidden></div>
+ <div><div class="eyebrow" style="margin-bottom:8px">Colour mode (this phone)</div><div class="pals" role="group" aria-label="Colour mode">${Object.keys(window.PALS).map(k=>`<button class="pal" data-pal="${k}" aria-pressed="${k===curPal()}"><i><b style="background:${window.PALS[k][1]}"></b><b style="background:${window.PALS[k][3]}"></b><b style="background:${window.PALS[k][2]}"></b></i>${window.PALS[k][0]}</button>`).join('')}</div></div>
  <div class="row"><button class="btn plain" data-a="lock">Lock app (forget passphrase)</button><button class="btn plain" data-a="close">Close</button></div>
  <p class="route" style="margin:0">Version 1 · ${DEV()}</p>`)}
 async function checkConn(){const er=$('s-e');er.hidden=false;er.style.color='var(--ink)';er.textContent='Checking…';try{await api('GET','items',[['pageSize','1']]);SYNC.live=true;SYNC.denied=false;er.textContent='Connected. Sync is working.';flush();poll()}catch(e){er.style.color='var(--bad)';er.textContent=e&&e.code==='denied'?'Firebase refused the request. Check the rules and API key.':e&&e.code==='nocfg'?'Add the project ID and API key first.':'Could not reach Firebase. Check your connection.'}}
@@ -361,6 +366,7 @@ document.addEventListener('click',e=>{
  if(b.tagName==='A')return;
  if(b.dataset.t){tab=b.dataset.t;render('saved');return}
  if(b.dataset.d){sel=+b.dataset.d;render('saved');return}
+ if(b.dataset.pal){setPal(b.dataset.pal);return}
  if(b.dataset.go){sel=+b.dataset.go;tab='today';render('saved');return}
  if(b.dataset.k){const k=b.dataset.k;const nv=!b.closest('li').classList.contains('done');const ck='a_'+k.replace(/[^\w-]/g,'_');ST.done=ST.done.filter(x=>x!==k);ST.syn.chk[ck]=nv;queueSet('checks/'+ck,{v:nv,at:Date.now()});save();b.closest('li').classList.toggle('done',nv);return}
  if(b.dataset.cp){const v=b.dataset.cp;const ok=()=>toast('Copied '+v);try{navigator.clipboard.writeText(v).then(ok,()=>toast(v))}catch(x){toast(v)}return}
