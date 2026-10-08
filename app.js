@@ -197,7 +197,7 @@ function status(){const el=$('stat');if(!el)return;const n=ST.ob.length,c=ST.cf.
  else if(!SYNC.live)h=`<b class="w">Offline</b><span>${n?n+' waiting to send':'Everything saved on this phone'}</span>`;
  else if(n)h=`<b class="w">${n} waiting</b><span>Sending…</span>`;
  else h=`<b>Synced</b><span>Shared with your partner</span>`;
- el.innerHTML=h+(cfg()?'<button class="gear" data-a="settings" aria-label="Settings">⚙</button>':'')}
+ el.innerHTML=h+`<span class="sbtns${/<button/.test(h)?'':' push'}"><button class="gear" data-a="search" aria-label="Search"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button><button class="sos" data-a="sos" aria-label="Emergency card">SOS</button>${cfg()?'<button class="gear" data-a="settings" aria-label="Settings">⚙</button>':''}</span>`}
 const stat=()=>`<div class="stat" id="stat"></div>`;
 
 /* ================= views ================= */
@@ -213,15 +213,15 @@ function viewToday(){
  if(!c.live&&!c.pv)h+=`<div class="note" style="margin:0 0 14px;background:var(--sky)"><b style="color:var(--sky-s)">${c.before?`Trip starts in ${c.diff} day${c.diff===1?'':'s'}.`:'Trip is over.'}</b> The Now card goes live on Oct 10. <button class="btn ghost" data-a="pvon" style="padding:4px 10px;min-height:0;border-radius:10px">Preview a time</button></div>`;
  if(c.pv)h+=`<div class="card" style="margin-bottom:14px"><div class="eyebrow" style="margin-bottom:8px">Preview mode</div><div class="pv"><select class="in" id="pvd" aria-label="Preview day">${DAYS.map(x=>`<option value="${x.n}"${x.n===c.day?' selected':''}>${dow(x)}</option>`).join('')}</select><input class="in" id="pvt" type="time" value="${hm(c.m)}" aria-label="Preview time"></div><button class="btn ghost" data-a="pvoff">Use real clock</button></div>`;
  const isNow=(c.live||c.pv)&&c.day===sel;
- if(isNow)h+=`<section class="now" style="${theme(d)}" id="nowc"></section>`;
+ if(isNow)h+=`<div id="leavec"></div><section class="now" style="${theme(d)}" id="nowc"></section>`;
  const cover=getPh('cover-'+sel);
- h+=`<div class="cover" style="${theme(d)}"><div class="art">${cover?`<img src="${cover}" alt="">`:SC[d.sc]||''}</div><button class="photo" data-ph="cover-${sel}" data-q="${esc(d.title)}">${cover?'Change photo':'Add photo'}</button><div class="meta"><div style="display:flex;gap:6px;flex-wrap:wrap">${early(its)?'<span class="pill rose">Early start '+its[0].t+'</span>':''}<span class="pill mint">${esc(d.stay.replace(/ \(.*\)/,''))}</span></div></div></div>`;
+ h+=`<div class="cover" style="${theme(d)}"><div class="art">${cover?`<img src="${cover}" alt="">`:SC[d.sc]||''}</div><button class="photo" data-ph="cover-${sel}" data-q="${esc(d.title)}">${cover?'Change photo':'Add photo'}</button><div class="meta"><div style="display:flex;gap:6px;flex-wrap:wrap">${early(its)?'<span class="pill rose">Early start '+its[0].t+'</span>':''}<span class="pill mint">${esc(d.stay.replace(/ \(.*\)/,''))}</span></div></div></div><div class="dinfo" id="dinfo"></div>`;
  h+=`<div class="addrow"><button class="btn" data-a="add">+ Add activity</button></div>`;
  h+=`<ol class="tl" style="${theme(d)}">${its.length?its.map(it=>row(it,dn)).join(''):'<li><span></span><div class="x" style="color:var(--soft)">No activities yet. Tap Add activity.</div><span></span></li>'}</ol>`;
  if(d.note)h+=`<div class="note"><b>Note.</b> ${esc(d.note)}</div>`;
- $('pane').innerHTML=h;status();if(isNow)paintNow()}
+ $('pane').innerHTML=h;status();paintInfo();wxFetch();if(isNow)paintNow()}
 function row(it,dn){const k=it.id;
- return `<li data-id="${esc(k)}" class="${dn.has(k)?'done':''}">${thumb(it)}<div class="x"><div class="tt">${it.t}${it.pending?'<span class="pend" title="Not shared yet"></span>':''}</div>${esc(it.x)}${it.g.map(g=>`<div class="tag ${g[0]}">${esc(g[1])}</div>`).join('')}${it.docs.length?`<div class="dchips">${it.docs.map(i=>`<button class="dchip" data-doc="${i}">${esc(docShort(i))}</button>`).join('')}</div>`:''}</div><div class="acts"><button class="ck" data-k="${esc(k)}" aria-label="Mark done"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></button><button data-edit="${esc(k)}" aria-label="Edit activity"><svg viewBox="0 0 24 24"><path d="M4 20l4-1 11-11-3-3L5 16z"/></svg></button></div></li>`}
+ return `<li data-id="${esc(k)}" class="${dn.has(k)?'done':''}">${thumb(it)}<div class="x"><div class="tt">${it.t}${it.pending?'<span class="pend" title="Not shared yet"></span>':''}</div>${esc(it.x)}${it.g.map(g=>`<div class="tag ${g[0]}">${esc(g[1])}</div>`).join('')}${it.docs.length?`<div class="dchips">${it.docs.map(i=>`<button class="dchip" data-doc="${i}">${esc(docShort(i))}</button>`).join('')}</div>`:''}${xtra(it)}</div><div class="acts"><button class="ck" data-k="${esc(k)}" aria-label="Mark done"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></button><button data-edit="${esc(k)}" aria-label="Edit activity"><svg viewBox="0 0 24 24"><path d="M4 20l4-1 11-11-3-3L5 16z"/></svg></button></div></li>`}
 function paintNow(){
  const c=clock();const el=$('nowc');if(!el)return;const its=itemsFor(sel);if(!its.length){el.innerHTML='<div class="big">No activities today.</div>';return}
  let cur=-1;its.forEach((it,i)=>{if(mins(it.t)<=c.m)cur=i});let html;
@@ -229,7 +229,7 @@ function paintNow(){
  else{const ci=cur>=0?its[cur]:null,ni=its[cur+1];const left=ni?mins(ni.t)-c.m:0;const span=ci&&ni?mins(ni.t)-mins(ci.t):1;const pr=ci&&ni?Math.min(100,Math.max(0,100*(c.m-mins(ci.t))/span)):0;
   html=`<div class="lbl"><span class="eyebrow">${ci?'Now':'Up first'}</span><span class="tm">${hm(c.m)} IST${c.pv?' · preview':''}</span></div><div class="big">${esc(ci?ci.x:ni.x)}</div>${ci&&ni?`<div class="bar" aria-hidden="true"><i style="width:${pr}%"></i></div>`:''}${ni&&ci?`<div class="nx"><small>Next at ${ni.t} · in ${left>=60?Math.floor(left/60)+' h '+(left%60)+' min':left+' min'}</small><div>${esc(ni.x)}</div></div>`:''}`}
  el.innerHTML=html;
- document.querySelectorAll('.tl li[data-id]').forEach((li,i)=>{li.classList.toggle('cur',i===cur);li.classList.toggle('past',i<cur)})}
+ document.querySelectorAll('.tl li[data-id]').forEach((li,i)=>{li.classList.toggle('cur',i===cur);li.classList.toggle('past',i<cur)});paintLeave()}
 function viewTrip(){const c=clock();
  const sub=c.pv?'Preview mode':c.before?`Starts in ${c.diff} day${c.diff===1?'':'s'}`:c.live?`Day ${c.day-9} of 11`:'Trip complete';
  let h=`<div class="top"><div><div class="eyebrow">Oct 10 to 20, 2026</div><h1>Imagicaa and the islands</h1></div><span class="pill">${sub}</span></div>${installBanner()}${stat()}
@@ -241,7 +241,7 @@ function viewTrip(){const c=clock();
 const docById=id=>DOCS.find(x=>x.id===id)||{id,title:'Document',grp:'',pages:0};
 const docShort=id=>{const d=docById(id);return d.grp==='Flights'||d.grp==='Ferries'?'Ticket':d.grp==='Plan'?'Plan':'Voucher'};
 function viewBook(){const tot=BOOK.reduce((a,b)=>a+b.amt,0);
- let h=`<div class="top"><div><div class="eyebrow">All confirmed</div><h1>Bookings</h1></div><span class="pill mint">${BOOK.length} items</span></div>${stat()}<div class="bk">`;
+ let h=`<div class="top"><div><div class="eyebrow">All confirmed</div><h1>Bookings</h1></div><span class="pill mint">${BOOK.length} items</span></div>${stat()}${comingUp()}<div class="bk">`;
  BOOK.forEach(b=>{h+=`<article class="bc"><div class="h"><div><span class="pill ${b.c}">${b.k}</span><h3 style="margin-top:6px">${esc(b.t)}</h3><div class="w">${esc(b.w)}</div></div><div class="amt">${inr(b.amt)}</div></div>
  <div class="kv"><span class="k">Ref</span><code>${esc(b.ref)}</code><button class="cp" data-cp="${esc(b.ref)}">Copy</button></div>
  ${b.ph?`<div class="kv"><span class="k">Phone</span><code>${esc(b.ph)}</code><button class="cp" data-cp="${esc(b.ph)}">Copy</button></div>`:''}
@@ -261,6 +261,7 @@ function viewMoney(){const ex=expList();const env=typeof ST.syn.meta.budget==='n
  const paid=BOOK.reduce((a,b)=>a+b.amt,0),spent=ex.reduce((a,b)=>a+b.a,0);const by={};CATS.forEach(c=>by[c]=0);ex.forEach(e=>{by[e.c]=(by[e.c]||0)+e.a});const mx=Math.max(1,...Object.values(by));
  let h=`<div class="top"><div><div class="eyebrow">On-trip spending</div><h1>Money</h1></div></div>${stat()}
  <div class="sum"><div class="card"><small>Paid in advance</small><b>${inr(paid)}</b></div><div class="card"><small>Logged on trip</small><b>${inr(spent)}</b></div><div class="card"><small>Budget for cabs, tickets, food</small><b>${inr(env)}</b></div><div class="card"><small>${env-spent>=0?'Left':'Over'}</small><b style="color:var(${env-spent>=0?'--ok':'--bad'})">${inr(Math.abs(env-spent))}</b></div></div>
+ ${spendChart(ex,env,spent)}
  <div class="card" style="margin-top:12px"><div class="eyebrow" style="margin-bottom:8px">Paid in advance, by type</div>${['Flights','Ferries','Stays','Park'].map(c=>{const v=BOOK.filter(b=>b.cat===c).reduce((a,b)=>a+b.amt,0);return `<div class="cat"><span>${c}</span><div class="tr"><i style="width:${100*v/paid}%"></i></div><b>${inr(v)}</b></div>`}).join('')}</div>
  <div class="sec"><h2>Add an expense</h2></div><form class="ex card" id="exf"><input class="in" id="exa" type="number" inputmode="decimal" min="0" step="any" placeholder="Amount in ₹" required aria-label="Amount"><select class="in" id="exc" aria-label="Category">${CATS.map(c=>`<option>${c}</option>`).join('')}</select><input class="in full" id="exn" placeholder="What was it for? (optional)" aria-label="Note"><button class="btn full" type="submit">Add expense</button></form>
  <div class="sec"><h2>Your spending</h2><span class="prog">${ex.length} entr${ex.length===1?'y':'ies'}</span></div>`;
@@ -354,11 +355,94 @@ function settingsSheet(){const c=cfg();const fromFile=!!(window.FB&&window.FB.pr
  ${fromFile?'':`<label>Firebase project ID<input class="in" id="s-p" autocapitalize="none" autocorrect="off" spellcheck="false" value="${esc((ST.cfg&&ST.cfg.projectId)||'')}"></label><label>Firebase web API key<input class="in" id="s-k" autocapitalize="none" autocorrect="off" spellcheck="false" value="${esc((ST.cfg&&ST.cfg.apiKey)||'')}"></label><div class="row"><button class="btn" data-a="savecfg">Save and connect</button></div>`}
  <div class="row"><button class="btn ghost" data-a="check">Check connection</button><button class="btn plain" data-a="reload">Reload latest version</button></div>
  <div class="err" id="s-e" hidden></div>
+ <div><div class="eyebrow" style="margin-bottom:8px">Child mode (this phone)</div><button class="btn ghost" data-a="kid" style="width:100%">Child mode: ${kidOn()?'ON':'OFF'}</button><p class="route" style="margin:6px 0 0">Adds a short tip for your child under each activity.</p></div>
  <div><div class="eyebrow" style="margin-bottom:8px">Text size (this phone)</div><div class="fsz" role="group" aria-label="Text size">${[['s','Small','14px'],['m','Normal','17px'],['l','Large','20px'],['xl','Extra large','23px']].map(([k,l,s])=>`<button data-fs="${k}" aria-pressed="${k===curFs()}"><span style="font-size:${s};display:block">Aa</span><span style="font-size:11px">${l}</span></button>`).join('')}</div></div>
  <div><div class="eyebrow" style="margin-bottom:8px">Colour mode (this phone)</div><div class="pals" role="group" aria-label="Colour mode">${Object.keys(window.PALS).map(k=>`<button class="pal" data-pal="${k}" aria-pressed="${k===curPal()}"><i><b style="background:${window.PALS[k][1]}"></b><b style="background:${window.PALS[k][3]}"></b><b style="background:${window.PALS[k][2]}"></b></i>${window.PALS[k][0]}</button>`).join('')}</div></div>
  <div class="row"><button class="btn plain" data-a="lock">Lock app (forget passphrase)</button><button class="btn plain" data-a="close">Close</button></div>
  <p class="route" style="margin:0">Version 1 · ${DEV()}</p>`)}
 async function checkConn(){const er=$('s-e');er.hidden=false;er.style.color='var(--ink)';er.textContent='Checking…';try{await api('GET','items',[['pageSize','1']]);SYNC.live=true;SYNC.denied=false;er.textContent='Connected. Sync is working.';flush();poll()}catch(e){er.style.color='var(--bad)';er.textContent=e&&e.code==='denied'?'Firebase refused the request. Check the rules and API key.':e&&e.code==='nocfg'?'Add the project ID and API key first.':'Could not reach Firebase. Check your connection.'}}
+
+/* ================= extras: maps, sun and weather, countdown, child tips, emergency, search, reminders, spending ================= */
+function lsGet(k,d){try{const v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+
+let XT={kid:'',places:[],deads:[],hosp:[]};
+async function loadExtras(){try{const r=await fetch('x-extras.bin');if(!r.ok)return;const o=JSON.parse(td.decode(await openBytes(new Uint8Array(await r.arrayBuffer()))));if(o&&Array.isArray(o.places)){o.places=o.places.map(([a,q])=>[new RegExp(a,'i'),q]);XT=Object.assign(XT,o);if(!document.querySelector('#layer>*'))render('keep')}}catch(e){}}
+const KN=()=>XT.kid||'your child';
+function placeFor(x){try{for(const [re,q] of XT.places)if(re.test(x))return q}catch(e){}return''}
+const mapUrl=q=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q);
+const mapLink=q=>q?`<a class="nav" href="${mapUrl(q)}" target="_blank" rel="noopener noreferrer" aria-label="Open in Google Maps">Map</a>`:'';
+/* child mode */
+const kidOn=()=>lsGet('an_kiana','0')==='1';
+function kidHint(x){const s=x.toLowerCase();
+ if(/flight|airport|gate|bag drop|security|boarding/.test(s))return'Snacks, tablet and a light jacket for the wait';
+ if(/ferry|makruzz|nautika|boat|speedboat/.test(s))return'Life jacket on. Hold her hand when boarding';
+ if(/snorkel|glass-bottom|elephant beach|north bay|coral/.test(s))return'Shallow water only, an adult within arm’s reach';
+ if(/beach|sand|swim|pool|cove/.test(s))return'Hat, sunscreen and water. Shallow end only';
+ if(/theme park|water park|rides|splash/.test(s))return'Check each ride’s height limit. Shade and water breaks';
+ if(/nap|rest|bed|lights out|sleep|quiet/.test(s))return'Rest time';
+ if(/breakfast|lunch|dinner|snack|tea\b/.test(s))return'Ask for mild food. Keep a snack handy';
+ if(/cab|drive|transfer/.test(s))return'Water and a small toy. Let her nap on the way';
+ if(/light & sound|show|sunset/.test(s))return'Carry a jacket. Fine to leave early if she is tired';
+ if(/wake up/.test(s))return'Let her sleep in the cab';return''}
+function xtra(it){try{const m=mapLink(placeFor(it.x)),k=kidOn()?kidHint(it.x):'';return(m||k)?`<div class="xtra">${m}${k?`<span class="tag lav">${esc(KN())}: ${esc(k)}</span>`:''}</div>`:''}catch(e){return''}}
+/* sunrise and sunset (offline maths), IST */
+function sunTimes(lat,lon,y,mo,d){const J=Date.UTC(y,mo,d,12)/864e5+2440587.5,n=Math.ceil(J-2451545+0.0008),rad=Math.PI/180;
+ const Js=n-lon/360,M=(357.5291+0.98560028*Js)%360,C=1.9148*Math.sin(M*rad)+0.02*Math.sin(2*M*rad)+0.0003*Math.sin(3*M*rad),L=(M+C+180+102.9372)%360;
+ const Jt=2451545+Js+0.0053*Math.sin(M*rad)-0.0069*Math.sin(2*L*rad),dec=Math.asin(Math.sin(L*rad)*Math.sin(23.44*rad));
+ const w=Math.acos((Math.sin(-0.833*rad)-Math.sin(lat*rad)*Math.sin(dec))/(Math.cos(lat*rad)*Math.cos(dec)))/rad;
+ const toM=j=>Math.round((((j-2440587.5)*864e5+19800000)%864e5)/6e4);return[toM(Jt-w/360),toM(Jt+w/360)]}
+const dayLoc=n=>n<=11?[19.07,72.88]:[11.62,92.73];
+/* weather (online when possible, last forecast kept for offline) */
+const WX={d:null,busy:false};
+try{const o=JSON.parse(lsGet('an_wx','null'));if(o&&o.mum&&o.pb)WX.d=o}catch(e){}
+function wxName(c){return c===0?'Clear':c<=2?'Mostly sunny':c===3?'Cloudy':c<=48?'Foggy':c<=57?'Drizzle':c<=67?'Rain':c<=77?'Snow':c<=82?'Showers':'Thunderstorms'}
+async function wxFetch(){if(WX.busy||!navigator.onLine)return;if(WX.d&&Date.now()-(WX.d.t||0)<3*3600e3)return;WX.busy=true;
+ try{const g=async(lat,lon)=>{const ac=new AbortController(),to=setTimeout(()=>ac.abort(),8000);try{const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FKolkata&forecast_days=16',{signal:ac.signal});if(!r.ok)throw new Error('wx');return await r.json()}finally{clearTimeout(to)}};
+  const [m,p]=await Promise.all([g(19.07,72.88),g(11.62,92.73)]);
+  const pick=j=>{const o={};j.daily.time.forEach((dt,i)=>{o[dt]=[j.daily.weathercode[i],Math.round(j.daily.temperature_2m_max[i]),Math.round(j.daily.temperature_2m_min[i]),j.daily.precipitation_probability_max[i]]});return o};
+  WX.d={t:Date.now(),mum:pick(m),pb:pick(p)};lsSet('an_wx',JSON.stringify(WX.d));paintInfo()}catch(e){}WX.busy=false}
+function paintInfo(){try{const el=$('dinfo');if(!el)return;const n=sel,loc=dayLoc(n),[sr,ss]=sunTimes(loc[0],loc[1],2026,9,n);
+ let h=`<span class="pill butter">Sunrise ${hm(sr)}</span><span class="pill peach">Sunset ${hm(ss)}</span>`;
+ const w=WX.d&&WX.d[n<=11?'mum':'pb']&&WX.d[n<=11?'mum':'pb']['2026-10-'+n];
+ if(w)h+=`<span class="pill sky">${wxName(w[0])} ${w[2]}° to ${w[1]}°C${w[3]!=null?' · rain '+w[3]+'%':''}</span>`;
+ el.innerHTML=h}catch(e){}}
+/* leave-now countdown */
+const CRIT=/ferry|makruzz|nautika|flight|indigo|boarding|bag drop|jetty|check out|leave|cab (to|from)|light & sound|report at|at the .* counter/i;
+function paintLeave(){try{const el=$('leavec');if(!el)return;const c=clock(),its=itemsFor(sel);
+ const nx=its.find(i=>mins(i.t)>c.m&&CRIT.test(i.x));if(!nx||mins(nx.t)-c.m>240){el.innerHTML='';return}
+ const left=mins(nx.t)-c.m,tone=left<=30?'r':left<=90?'w':'',t=left>=60?Math.floor(left/60)+' h '+(left%60)+' min':left+' min';
+ el.innerHTML=`<div class="leave ${tone}"><b>Be ready in ${t}</b><span>${nx.t} · ${esc(nx.x.slice(0,90))}</span></div>`}catch(e){}}
+/* emergency card */
+function sosSheet(){const stays=BOOK.filter(b=>b.k==='Stay'||b.k==='Flight'||b.k==='Ferry');
+ openLayer(`<h2>Emergency card</h2><div class="eyebrow">Tap a number to call</div>
+ <div class="sosg"><a class="btn sosb" href="tel:112">112 All emergencies</a><a class="btn sosb" href="tel:108">108 Ambulance</a><a class="btn sosb" href="tel:100">100 Police</a><a class="btn sosb" href="tel:101">101 Fire</a><a class="btn sosb" href="tel:1098">1098 Child helpline</a><a class="btn sosb" href="tel:1091">1091 Women helpline</a></div>
+ <div class="eyebrow">Hospitals (opens Google Maps)</div>
+ <div class="sosg">${(XT.hosp||[]).map(([l,q])=>`<a class="btn ghost" href="${mapUrl(q)}" target="_blank" rel="noopener noreferrer">${esc(l)}</a>`).join('')}</div>
+ <div class="eyebrow">Health notes for this phone only</div><textarea id="med" class="in" rows="3" maxlength="500" placeholder="Allergies, blood groups, medicines, doctor’s number">${esc(lsGet('an_med',''))}</textarea>
+ <div class="eyebrow">Booking references</div><div class="card" style="padding:8px 12px">${stays.map(b=>`<div class="kv"><span class="k">${esc(b.k)}</span><span style="flex:1;min-width:0">${esc(b.t.slice(0,40))}<br><small>${esc(b.w.slice(0,38))}</small></span><code>${esc(b.ref)}</code></div>`).join('')}</div>
+ <div class="row"><button class="btn plain" data-a="close">Close</button></div>`)}
+/* search */
+function searchSheet(){openLayer(`<h2>Search</h2><input class="in" id="sq" type="search" placeholder="Activities, bookings, tickets, places" autocomplete="off" autocapitalize="none" aria-label="Search"><div id="sr" class="srl"></div><div class="row"><button class="btn plain" data-a="close">Close</button></div>`);setTimeout(()=>{const q=$('sq');if(q)q.focus()},120)}
+function doSearch(v){const el=$('sr');if(!el)return;const q=v.trim().toLowerCase();if(q.length<2){el.innerHTML='<p class="route">Type at least 2 letters.</p>';return}
+ const out=[];DAYS.forEach(d=>itemsFor(d.n).forEach(i=>{if(i.x.toLowerCase().includes(q)||i.t.includes(q))out.push(`<button class="drow" data-sg="d:${d.n}:${esc(i.id)}"><span>${esc(i.x.slice(0,90))}</span><small>${d.dow} ${d.n} Oct ${i.t}</small></button>`)}));
+ BOOK.forEach((b,ix)=>{if((b.t+' '+b.ref+' '+b.w+' '+b.pol).toLowerCase().includes(q))out.push(`<button class="drow" data-sg="b:${ix}"><span>${esc(b.t)}</span><small>${esc(b.k)} · ${esc(b.ref)}</small></button>`)});
+ DOCS.forEach(d=>{if(d.title.toLowerCase().includes(q))out.push(`<button class="drow" data-sg="o:${esc(d.id)}"><span>${esc(d.title)}</span><small>Original</small></button>`)});
+ el.innerHTML=out.length?out.slice(0,40).join(''):'<p class="route">Nothing found.</p>'}
+function goSearch(v){const [k,a,b]=v.split(':');
+ if(k==='d'){closeLayer();sel=+a;tab='today';render('saved');setTimeout(()=>{const li=document.querySelector('.tl li[data-id="'+(b||'').replace(/"/g,'')+'"]');if(li){li.scrollIntoView({block:'center'});li.classList.add('hit');setTimeout(()=>li.classList.remove('hit'),2200)}},120)}
+ else if(k==='b'){closeLayer();tab='book';render('saved')}else if(k==='o'){closeLayer();docViewer(a)}}
+/* booking reminders */
+
+function comingUp(){try{const n=ist(),now=n.y===2026&&n.mo===9?n.d*1440+n.m:(n.y*12+n.mo<2026*12+9?0:1e9),list=[];
+ BOOK.forEach(b=>{const m=/(\d{1,2}) (?:to \d+ )?Oct/.exec(b.w);if(!m)return;const t=/(\d{1,2}:\d{2})/.exec(b.w),tm=t?t[1]:/check-in (\d{1,2}:\d{2})/.exec(b.w+' '+b.pol)?.[1]||'12:00';list.push([+m[1],tm,(b.k==='Stay'?'Check-in: ':b.k+': ')+b.t.slice(0,44)])});
+ (XT.deads||[]).forEach(d=>list.push(d.slice()));
+ list.forEach(x=>x.at=x[0]*1440+mins(x[1]));const up=list.filter(x=>x.at>=now).sort((a,b)=>a.at-b.at).slice(0,4);if(!up.length)return'';
+ return `<div class="card rem"><div class="eyebrow" style="margin-bottom:6px">Coming up</div>${up.map(x=>{const dl=x.at-now,t=now===0?'':dl<1440?(dl>=60?Math.floor(dl/60)+' h':dl+' min'):Math.floor(dl/1440)+' d';return `<div class="rowx"><div><b>${esc(x[2])}</b><br><small>${x[0]} Oct, ${x[1]}</small></div>${t?`<span class="pill ${dl<1440?'rose':'sky'}">in ${t}</span>`:''}</div>`}).join('')}</div>`}catch(e){return''}}
+/* spending by day */
+function spendChart(ex,env,spent){try{if(!ex.length)return'';const by={};ex.forEach(e=>{const m=/(\d{1,2})/.exec(e.d||'');const k=m?+m[1]:0;by[k]=(by[k]||0)+e.a});const ks=Object.keys(by).map(Number).sort((a,b)=>a-b),mx=Math.max(1,...Object.values(by)),n=ist();
+ const left=env-spent,daysLeft=n.y===2026&&n.mo===9&&n.d>=10&&n.d<20?20-n.d:0;
+ return `<div class="card" style="margin-top:12px"><div class="eyebrow" style="margin-bottom:8px">Spending by day</div>${ks.map(k=>`<div class="cat"><span>${k?k+' Oct':'Other'}</span><div class="tr"><i style="width:${100*by[k]/mx}%"></i></div><b>${inr(by[k])}</b></div>`).join('')}<p class="route" style="margin:8px 0 0">${left>=0?`Left to spend: ${inr(left)}${daysLeft?` (about ${inr(Math.round(left/daysLeft))} a day for the ${daysLeft} days left)`:''}`:`Over budget by ${inr(-left)}`}</p></div>`}catch(e){return''}}
 
 /* ================= events ================= */
 document.addEventListener('click',e=>{
@@ -370,6 +454,7 @@ document.addEventListener('click',e=>{
  if(b.dataset.t){tab=b.dataset.t;render('saved');return}
  if(b.dataset.d){sel=+b.dataset.d;render('saved');return}
  if(b.dataset.pal){setPal(b.dataset.pal);return}
+ if(b.dataset.sg){goSearch(b.dataset.sg);return}
  if(b.dataset.fs){setFs(b.dataset.fs);return}
  if(b.dataset.go){sel=+b.dataset.go;tab='today';render('saved');return}
  if(b.dataset.k){const k=b.dataset.k;const nv=!b.closest('li').classList.contains('done');const ck='a_'+k.replace(/[^\w-]/g,'_');ST.done=ST.done.filter(x=>x!==k);ST.syn.chk[ck]=nv;queueSet('checks/'+ck,{v:nv,at:Date.now()});save();b.closest('li').classList.toggle('done',nv);return}
@@ -393,6 +478,9 @@ document.addEventListener('click',e=>{
  else if(a==='theirs')resolve(false);
  else if(a==='conf')showConflict();
  else if(a==='settings')settingsSheet();
+ else if(a==='sos')sosSheet();
+ else if(a==='search')searchSheet();
+ else if(a==='kid'){lsSet('an_kiana',kidOn()?'0':'1');b.textContent='Child mode: '+(kidOn()?'ON':'OFF');render('keep')}
  else if(a==='savecfg'){const p=$('s-p').value.trim(),k=$('s-k').value.trim();if(p&&k){ST.cfg={projectId:p,apiKey:k};save();SYNC.denied=false;checkConn()}}
  else if(a==='check')checkConn();
  else if(a==='reload'){(async()=>{try{for(const k of await caches.keys())await caches.delete(k);const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.unregister()}catch(x){}location.reload()})()}
@@ -404,6 +492,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('submit',e=>{e.preventDefault();if(e.target.id!=='exf')return;
  const a=parseFloat($('exa').value);if(!(a>0))return;const n=ist();const id='e'+Date.now().toString(36)+Math.random().toString(36).slice(2,4);
  const doc={a,c:$('exc').value,n:$('exn').value.trim().slice(0,120),d:n.d+' Oct',by:DEV(),at:Date.now()};ST.syn.exp[id]=doc;queueSet('expenses/'+id,doc);viewMoney();toast('Added')});
+document.addEventListener('input',e=>{try{if(e.target.id==='sq')doSearch(e.target.value);if(e.target.id==='med')lsSet('an_med',e.target.value)}catch(x){}});
 document.addEventListener('change',e=>{
  if(e.target.id==='pvd'||e.target.id==='pvt'){const day=+$('pvd').value;const v=normT($('pvt').value)||'08:00';ST.ui.pv={day,m:mins(v)};sel=day;save();render('saved')}
  if(e.target.id==='env'){const v=Math.max(0,+e.target.value||0);ST.syn.meta.budget=v;queueSet('meta/budget',{v,at:Date.now()});viewMoney()}});
@@ -430,9 +519,9 @@ function start(){
  // restore where the user was; on a new live trip day jump to today
  const c=clock();tab=ST.ui.tab||'today';sel=ST.ui.sel&&dayOf(ST.ui.sel)?ST.ui.sel:c.day;
  if(c.live&&ST.ui.day&&ST.ui.day!==c.day&&!ST.ui.pv){sel=c.day;tab='today'}
- render('saved');
+ render('saved');loadExtras();
  if(ST.cf.length)showConflict();
  poll();flush()}
-window.__app={get ST(){return ST},get healed(){return healed},heal,flush,poll,itemsFor,get sync(){return SYNC},get trip(){return TRIP}};
+window.__app={loadExtras,get ST(){return ST},get healed(){return healed},heal,flush,poll,itemsFor,sunTimes,spendChart,get sync(){return SYNC},get trip(){return TRIP}};
 boot();
 })();
