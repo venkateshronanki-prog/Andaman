@@ -81,7 +81,8 @@ async function api(method,path,qs,body){
  const q=new URLSearchParams();q.set('key',c.apiKey);(qs||[]).forEach(([k,v])=>q.append(k,v));
  let r;try{r=await fetch(url+'?'+q.toString(),{method,headers:body?{'Content-Type':'application/json'}:undefined,body:body?JSON.stringify(body):undefined})}catch(e){throw{code:'unavailable'}}
  let j=null;try{j=await r.json()}catch(e){}
- if(r.ok)return{status:r.status,json:j};
+ if(r.ok){if(j===null||typeof j!=='object')throw{code:'unavailable'};return{status:r.status,json:j}}
+ if(j===null&&r.status!==404)throw{code:'unavailable'};
  const st=j&&j.error&&j.error.status||'';
  if(r.status===404)return{status:404,json:null};
  if(r.status===409||r.status===412||st==='FAILED_PRECONDITION'||st==='ABORTED'||(r.status===400&&/precondition/i.test(JSON.stringify(j||{}))))throw{code:'precondition'};
@@ -89,7 +90,7 @@ async function api(method,path,qs,body){
  if(r.status===400&&/API key/i.test(JSON.stringify(j||{})))throw{code:'denied'};
  if(r.status===429||r.status>=500)throw{code:'unavailable'};
  throw{code:'invalid',msg:j&&j.error&&j.error.message}}
-async function listAll(coll,mask){const out=[];let tok='';for(let i=0;i<40;i++){const qs=[['pageSize','300']];if(tok)qs.push(['pageToken',tok]);(mask||[]).forEach(m=>qs.push(['mask.fieldPaths',m]));const r=await api('GET',coll,qs);const j=r.json||{};(j.documents||[]).forEach(d=>out.push(d));tok=j.nextPageToken;if(!tok)break}return out}
+async function listAll(coll,mask){const out=[];let tok='';for(let i=0;i<40;i++){const qs=[['pageSize','300']];if(tok)qs.push(['pageToken',tok]);(mask||[]).forEach(m=>qs.push(['mask.fieldPaths',m]));const r=await api('GET',coll,qs);if(r.status!==200||!r.json)throw{code:'unavailable'};const j=r.json;(j.documents||[]).forEach(d=>out.push(d));tok=j.nextPageToken;if(!tok)break}return out}
 const idOf=d=>d.name.split('/').pop();
 async function wire(path,doc){const[c]=path.split('/');if(c==='photos')return{by:doc.by||'',at:doc.at||0,ct:await seal({img:doc.img})};if(c==='expenses')return{by:doc.by||'',at:doc.at||0,ct:await seal(doc)};return doc}
 async function itemFromRemote(d){const f=decFields(d.fields);if(!Number.isInteger(f.rev)||typeof f.ct!=='string')return null;try{const o=await unseal(f.ct);const v=Object.assign({},o,{rev:f.rev,ut:d.updateTime});return okItem(v)?v:null}catch(e){return null}}
@@ -522,7 +523,14 @@ document.addEventListener('click',e=>{
  else if(a==='kid'){lsSet('an_kiana',kidOn()?'0':'1');b.textContent='Child mode: '+(kidOn()?'ON':'OFF');render('keep')}
  else if(a==='savecfg'){const p=$('s-p').value.trim(),k=$('s-k').value.trim();if(p&&k){ST.cfg={projectId:p,apiKey:k};save();SYNC.denied=false;checkConn()}}
  else if(a==='check')checkConn();
- else if(a==='reload'){(async()=>{try{for(const k of await caches.keys())await caches.delete(k);const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.unregister()}catch(x){}location.reload()})()}
+ else if(a==='reload'){(async()=>{try{if(navigator.onLine===false){toast('You are offline. The app keeps working from this phone.');return}
+ const c=await caches.open('an-v1');const L=['./','index.html','app.css','app.js','payload.js','scenes.js','config.js','manifest.webmanifest','pdf.min.js','pdf.worker.min.js','scenes.js'];
+ try{const r=await fetch('docs.json',{cache:'reload'});if(r.ok)(await r.json()).forEach(u=>L.push(u))}catch(x){}
+ const first=await fetch('index.html',{cache:'reload'});if(!first||!first.ok){toast('Could not reach the server. Nothing was changed.');return}
+ await c.put('index.html',first.clone());let bad=0;
+ await Promise.all(L.map(async u=>{try{const r=await fetch(u,{cache:'reload'});if(r&&r.ok)await c.put(u,r);else bad++}catch(x){bad++}}));
+ try{const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.update()}catch(x){}
+ toast(bad?'Updated most files. Reloading…':'Updated. Reloading…');setTimeout(()=>location.reload(),600)}catch(x){toast('Could not update. Nothing was changed.')}})()}
  else if(a==='lock'){(async()=>{await IDB.del('kv','key');location.reload()})()}
  else if(a==='hint'){ST.ui.nohint=true;save();render('keep')}
  else if(a==='pvon'){ST.ui.pv={day:sel||10,m:480};save();render('saved')}
