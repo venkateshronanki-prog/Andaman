@@ -206,6 +206,10 @@ function thumb(it){const ph=getPh(it.id),k=kindOf(it.x);
  return `<button class="th" data-ph="${esc(it.id)}" data-q="${esc(it.x.slice(0,60))}" aria-label="${ph?'Change photo':'Add photo'}">${ph?`<img src="${ph}" alt="">`:`<svg viewBox="0 0 96 96" width="52" height="52" aria-hidden="true"><use href="#k-${k}"/></svg>`}<i>${ph?'✎':'+'}</i></button>`}
 function installBanner(){const standalone=window.navigator.standalone||matchMedia('(display-mode: standalone)').matches;if(standalone||ST.ui.nohint)return'';
  return `<div class="install"><div><b>Install this app.</b> Tap the Share button in Safari, then Add to Home Screen. It then opens full screen and works with no signal.</div><button data-a="hint">Got it</button></div>`}
+function glance(its,dn,isNow,c){try{const n=its.length,k=its.filter(i=>dn.has(i.id)).length;const hmn=t=>{const m=/^(\d+):(\d+)/.exec(t||'');return m?(+m[1])*60+(+m[2]):-1};
+let nx=its.find(i=>!dn.has(i.id)&&(!isNow||hmn(i.t)>=c.m))||its.find(i=>!dn.has(i.id));
+const txt=!n?'Nothing planned yet':(k===n?'All done. Enjoy the rest of the day.':nx?`Next ${esc(nx.t||'')} ${esc(String(nx.x||'').slice(0,46))}`:'');
+return `<div class="glance"><div class="gl-n"><b>${k}</b>/${n}<span>done</span></div><div class="gl-t">${txt}</div><button class="btn ghost gl-b" data-a="pack">Pack</button></div>`}catch(e){return''}}
 function viewToday(){
  const c=clock();if(sel==null||!dayOf(sel))sel=c.day;const d=dayOf(sel);const its=itemsFor(sel);const dn=new Set(ST.done);for(const kk in ST.syn.chk)if(kk.startsWith('a_')){const id0=kk.slice(2);ST.syn.chk[kk]?dn.add(id0):dn.delete(id0)}
  let h=`<div class="top"><div><div class="eyebrow">${dow(d)}</div><h1>${esc(d.title)}</h1></div></div>${installBanner()}${stat()}`;
@@ -215,7 +219,7 @@ function viewToday(){
  const isNow=(c.live||c.pv)&&c.day===sel;
  if(isNow)h+=`<div id="leavec"></div><section class="now" style="${theme(d)}" id="nowc"></section>`;
  const cover=getPh('cover-'+sel);
- h+=`<div class="cover" style="${theme(d)}"><div class="art">${cover?`<img src="${cover}" alt="">`:SC[d.sc]||''}</div><button class="photo" data-ph="cover-${sel}" data-q="${esc(d.title)}">${cover?'Change photo':'Add photo'}</button><div class="meta"><div style="display:flex;gap:6px;flex-wrap:wrap">${early(its)?'<span class="pill rose">Early start '+its[0].t+'</span>':''}<span class="pill mint">${esc(d.stay.replace(/ \(.*\)/,''))}</span></div></div></div><div class="dinfo" id="dinfo"></div>`;
+ h+=`<div class="cover" style="${theme(d)}"><div class="art">${cover?`<img src="${cover}" alt="">`:SC[d.sc]||''}</div><button class="photo" data-ph="cover-${sel}" data-q="${esc(d.title)}">${cover?'Change photo':'Add photo'}</button><div class="meta"><div style="display:flex;gap:6px;flex-wrap:wrap">${early(its)?'<span class="pill rose">Early start '+its[0].t+'</span>':''}<span class="pill mint">${esc(d.stay.replace(/ \(.*\)/,''))}</span></div></div></div><div class="dinfo" id="dinfo"></div>${glance(its,dn,isNow,c)}`;
  h+=`<div class="addrow"><button class="btn" data-a="add">+ Add activity</button></div>`;
  h+=`<ol class="tl" style="${theme(d)}">${its.length?its.map(it=>row(it,dn)).join(''):'<li><span></span><div class="x" style="color:var(--soft)">No activities yet. Tap Add activity.</div><span></span></li>'}</ol>`;
  if(d.note)h+=`<div class="note"><b>Note.</b> ${esc(d.note)}</div>`;
@@ -361,6 +365,7 @@ function settingsSheet(){const c=cfg();const fromFile=!!(window.FB&&window.FB.pr
  <div class="srow"><span>Stretch screen down</span><span id="v-fit">${fitVal()}</span></div><input class="ios" type="range" id="r-fit" min="0" max="70" step="1" value="${fitVal()}" style="--p:${100*fitVal()/70}%">
  <div class="srow" style="margin-top:6px"><span>Lift bar up</span><span id="v-lift">${lsGet('an_lift','0')}</span></div><input class="ios" type="range" id="r-lift" min="0" max="40" step="1" value="${lsGet('an_lift','0')}" style="--p:${100*lsGet('an_lift','0')/40}%">
  <p class="route" style="margin:6px 0 0">Stretch fills a blank strip under the bar. Lift raises the bar if it is cut off. Both apply instantly.</p></div>
+ <div class="swrow"><div><b>Days-to-go on app icon</b><p class="route" style="margin:2px 0 0">Shows a number badge. Updates whenever you open the app.</p></div><button class="btn ghost" data-a="badge">Turn on</button></div>
  <div class="swrow"><div><b>Child mode</b><p class="route" style="margin:2px 0 0">Adds a short tip for your child under each activity.</p></div><input class="sw" type="checkbox" switch data-a="kidsw" ${kidOn()?'checked':''} aria-label="Child mode"></div>
  <div><div class="eyebrow" style="margin-bottom:8px">Text size (this phone)</div><div class="fsz" role="group" aria-label="Text size">${[['s','Small','14px'],['m','Normal','17px'],['l','Large','20px'],['xl','Extra large','23px']].map(([k,l,s])=>`<button data-fs="${k}" aria-pressed="${k===curFs()}"><span style="font-size:${s};display:block">Aa</span><span style="font-size:11px">${l}</span></button>`).join('')}</div></div>
  <div><div class="eyebrow" style="margin-bottom:8px">Colour mode (this phone)</div><div class="pals" role="group" aria-label="Colour mode">${Object.keys(window.PALS).map(k=>`<button class="pal" data-pal="${k}" aria-pressed="${k===curPal()}"><i><b style="background:${window.PALS[k][1]}"></b><b style="background:${window.PALS[k][3]}"></b><b style="background:${window.PALS[k][2]}"></b></i>${window.PALS[k][0]}</button>`).join('')}</div></div>
@@ -422,6 +427,21 @@ function paintLeave(){try{const el=$('leavec');if(!el)return;const c=clock(),its
  const left=mins(nx.t)-c.m,tone=left<=30?'r':left<=90?'w':'',t=left>=60?Math.floor(left/60)+' h '+(left%60)+' min':left+' min';
  el.innerHTML=`<div class="leave ${tone}"><b>Be ready in ${t}</b><span>${nx.t} · ${esc(nx.x.slice(0,90))}</span></div>`}catch(e){}}
 /* emergency card */
+function packList(day){const its=itemsFor(day),T=its.map(i=>(i.x||'')+' '+(i.t||'')).join(' | ').toLowerCase(),k=KN(),L=[];
+const add=(g,a)=>{if(!L.some(x=>x[1]===a))L.push([g,a])};
+add('Always','Water bottle and snacks');add('Always','Sunscreen and hats');add('Always','Phone, power bank and charger');add('Always',k+': favourite snack, wipes and a change of clothes');
+if(/flight|airport|indigo|boarding|check-in/.test(T)){add('Travel','IDs and tickets (offline copies are in Bookings)');add('Travel','Medicines and chargers in hand luggage')}
+if(/ferry|boat|makruzz|nautika|cruise|jetty/.test(T)){add('Ferry','Motion-sickness tablets');add('Ferry','Light jacket (cold inside)');add('Ferry','Ferry tickets and IDs')}
+if(/beach|snorkel|swim|scuba|glass|sea|island|bay|lagoon/.test(T)){add('Beach','Swimwear and quick-dry towel');add('Beach','Reef-safe sunscreen');add('Beach','Water shoes and a dry bag')}
+if(/jail|sound|light show|museum|ross|fort/.test(T)){add('Sights','Mosquito repellent');add('Sights','Comfortable walking shoes')}
+if(/imagicaa|park|ride|water park/.test(T)){add('Park','Change of clothes and a towel');add('Park','Cash or card for lockers')}
+if(/early|wake up|0[0-4]:/.test(T))add('Early start','Pack the night before, keep documents together');
+return L}
+function packSheet(){let d=sel;if(d==null)d=clock().day;const L=packList(d);let ck={};try{ck=JSON.parse(localStorage.getItem('an_pk'+d)||'{}')}catch(e){}let g='',h='';
+L.forEach(([a,b],i)=>{if(a!==g){g=a;h+=`<div class="eyebrow" style="margin-top:6px">${esc(a)}</div>`}h+=`<label class="pk"><input type="checkbox" data-pk="${d}" data-i="${i}" ${ck[i]?'checked':''}><span>${esc(b)}</span></label>`});
+openLayer(`<h2>Pack for day ${d}</h2><p class="route" style="margin:0">Suggestions from this day's plan. Ticks are saved on this phone.</p>${h}<div class="row"><button class="btn plain" data-a="close">Close</button></div>`)}
+async function badgeOn(){try{if(!('setAppBadge' in navigator)){toast('This phone does not support app badges');return}let ok=true;if(window.Notification&&Notification.permission!=='granted')ok=(await Notification.requestPermission())==='granted';if(!ok){toast('Allow notifications so iOS can show the badge');return}lsSet('an_badge','1');badgeSet();toast('Days to go will show on the app icon')}catch(e){toast('Could not turn the badge on')}}
+function badgeSet(){try{if(lsGet('an_badge','')!=='1'||!('setAppBadge' in navigator))return;const c=clock(),n=c.before?c.diff:0;if(n>0)navigator.setAppBadge(n);else navigator.clearAppBadge()}catch(e){}}
 function sosSheet(){const stays=BOOK.filter(b=>b.k==='Stay'||b.k==='Flight'||b.k==='Ferry');
  openLayer(`<h2>Emergency card</h2><div class="eyebrow">Tap a number to call</div>
  <div class="sosg"><a class="btn sosb" href="tel:112">112 All emergencies</a><a class="btn sosb" href="tel:108">108 Ambulance</a><a class="btn sosb" href="tel:100">100 Police</a><a class="btn sosb" href="tel:101">101 Fire</a><a class="btn sosb" href="tel:1098">1098 Child helpline</a><a class="btn sosb" href="tel:1091">1091 Women helpline</a></div>
@@ -488,6 +508,8 @@ document.addEventListener('click',e=>{
  else if(a==='settings')settingsSheet();
  else if(a==='sos')sosSheet();
  else if(a==='search')searchSheet();
+ else if(a==='pack')packSheet();
+ else if(a==='badge')badgeOn();
  else if(a==='kidsw'){lsSet('an_kiana',b.checked?'1':'0');render('keep')}
  else if(a==='fit'){const v=b.dataset.v;try{localStorage.setItem('an_fit',v)}catch(e){}if(window.fitApp)window.fitApp();document.querySelectorAll('[data-a="fit"]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===v)))}
  else if(a==='kid'){lsSet('an_kiana',kidOn()?'0':'1');b.textContent='Child mode: '+(kidOn()?'ON':'OFF');render('keep')}
@@ -502,7 +524,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('submit',e=>{e.preventDefault();if(e.target.id!=='exf')return;
  const a=parseFloat($('exa').value);if(!(a>0))return;const n=ist();const id='e'+Date.now().toString(36)+Math.random().toString(36).slice(2,4);
  const doc={a,c:$('exc').value,n:$('exn').value.trim().slice(0,120),d:n.d+' Oct',by:DEV(),at:Date.now()};ST.syn.exp[id]=doc;queueSet('expenses/'+id,doc);viewMoney();toast('Added')});
-document.addEventListener('input',e=>{try{const t=e.target;if(t.id==='r-fit'||t.id==='r-lift'){const fit=t.id==='r-fit',v=t.value;lsSet(fit?'an_fit':'an_lift',v);$(fit?'v-fit':'v-lift').textContent=v;t.style.setProperty('--p',(100*v/t.max)+'%');if(fit){if(window.fitApp)window.fitApp()}else document.documentElement.style.setProperty('--lift',v+'px');haptic()}if(e.target.id==='sq')doSearch(e.target.value);if(e.target.id==='med')lsSet('an_med',e.target.value)}catch(x){}});
+document.addEventListener('input',e=>{try{const t=e.target;if(t.dataset&&t.dataset.pk){let o={};try{o=JSON.parse(localStorage.getItem('an_pk'+t.dataset.pk)||'{}')}catch(x){}o[t.dataset.i]=t.checked?1:0;lsSet('an_pk'+t.dataset.pk,JSON.stringify(o));window.haptic&&window.haptic();return}if(t.id==='r-fit'||t.id==='r-lift'){const fit=t.id==='r-fit',v=t.value;lsSet(fit?'an_fit':'an_lift',v);$(fit?'v-fit':'v-lift').textContent=v;t.style.setProperty('--p',(100*v/t.max)+'%');if(fit){if(window.fitApp)window.fitApp()}else document.documentElement.style.setProperty('--lift',v+'px');haptic()}if(e.target.id==='sq')doSearch(e.target.value);if(e.target.id==='med')lsSet('an_med',e.target.value)}catch(x){}});
 document.addEventListener('change',e=>{
  if(e.target.id==='pvd'||e.target.id==='pvt'){const day=+$('pvd').value;const v=normT($('pvt').value)||'08:00';ST.ui.pv={day,m:mins(v)};sel=day;save();render('saved')}
  if(e.target.id==='env'){const v=Math.max(0,+e.target.value||0);ST.syn.meta.budget=v;queueSet('meta/budget',{v,at:Date.now()});viewMoney()}});
@@ -540,6 +562,16 @@ if(Math.abs(dx)>70&&Math.abs(dy)<45&&tab==='today'){const i=DAYS.findIndex(d=>d.
 (function(){let L=null;function mk(){if(L)return;L=document.createElement('label');L.className='hapt';L.innerHTML='<input type="checkbox" switch tabindex="-1" aria-hidden="true">';document.body.appendChild(L)}
 window.haptic=function(){try{mk();L.click()}catch(e){}try{if(navigator.vibrate)navigator.vibrate(8)}catch(e){}};
 document.addEventListener('pointerdown',e=>{if(e.target.closest&&e.target.closest('button,.chip,nav button')&&!e.target.closest('input'))window.haptic()},{passive:true})})();
+(function(){let tm=0,on=false,last=null;const chipAt=(x,y)=>{const el=document.elementFromPoint(x,y);return el&&el.closest&&el.closest('.chip')};
+document.addEventListener('touchstart',e=>{const ch=e.target.closest&&e.target.closest('.chips');on=false;clearTimeout(tm);if(!ch||e.touches.length!==1)return;tm=setTimeout(()=>{on=true;last=null;window.haptic&&window.haptic()},320)},{passive:true});
+document.addEventListener('touchmove',e=>{if(!on){clearTimeout(tm);return}if(e.cancelable)e.preventDefault();const t=e.touches[0],c=chipAt(t.clientX,t.clientY);if(c&&c.dataset.d&&c.dataset.d!==last){last=c.dataset.d;sel=+last;document.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',String(x===c)));window.haptic&&window.haptic()}},{passive:false});
+document.addEventListener('touchend',()=>{clearTimeout(tm);if(on){on=false;if(last){enter();render('keep')}last=null}},{passive:true});
+document.addEventListener('touchcancel',()=>{clearTimeout(tm);on=false},{passive:true});
+['gesturestart','gesturechange','gestureend'].forEach(g=>document.addEventListener(g,e=>e.preventDefault()));
+document.addEventListener('touchmove',e=>{if(e.touches.length>1&&e.cancelable)e.preventDefault()},{passive:false});
+const pill=document.createElement('div');pill.className='offpill';pill.textContent='Offline. Changes are saved on this phone and sync later.';pill.hidden=navigator.onLine!==false;document.body.appendChild(pill);
+const up=()=>{pill.hidden=navigator.onLine!==false};window.addEventListener('online',up);window.addEventListener('offline',up)})();
+setTimeout(()=>{try{badgeSet()}catch(e){}},3000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)try{badgeSet()}catch(e){}});
 window.__app={loadExtras,get ST(){return ST},get healed(){return healed},heal,flush,poll,itemsFor,sunTimes,spendChart,get sync(){return SYNC},get trip(){return TRIP}};
 boot();
 })();
