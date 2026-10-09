@@ -47,7 +47,7 @@ function heal(){let n=0;
 let saveT=0;
 function save(now){if(!ST)return;clearTimeout(saveT);const go=()=>{IDB.set('kv','state',JSON.parse(JSON.stringify(ST)));try{localStorage.setItem('an-ui',JSON.stringify(ST.ui))}catch(e){}};if(now)go();else saveT=setTimeout(go,120)}
 window.addEventListener('pagehide',()=>save(true));
-document.addEventListener('visibilitychange',()=>{if(document.hidden)save(true);else{poll();}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){lsSet('an_seen',String(Date.now()));save(true)}else{poll();try{locFix();const c=clock();if(c.live&&!ST.ui.pv&&ST.ui.day&&ST.ui.day!==c.day&&tab==='today'&&!document.querySelector('.ov')){sel=c.day;ST.ui.day=c.day;render('saved')}}catch(e){}}});
 function getPh(id){return phMem[id]||null}
 async function setPh(id,img){if(img){phMem[id]=img;await IDB.set('ph',id,img)}else{delete phMem[id];await IDB.del('ph',id)}}
 
@@ -156,7 +156,7 @@ function detect(){let moved=false;ST.ob=ST.ob.filter(o=>{if(o.k!=='item')return 
  if(moved){save();showConflict()}}
 setInterval(()=>{if(ST&&ST.ob.length)flush()},20000);
 setInterval(()=>poll(),12000);
-window.addEventListener('online',()=>{retry=0;flush();poll()});
+window.addEventListener('online',()=>{retry=0;flush();poll();try{locFix()}catch(e){}});
 const DEV=()=>{if(!ST.dev){ST.dev='d'+Math.random().toString(36).slice(2,8);save()}return ST.dev};
 
 /* ================= derived data ================= */
@@ -211,10 +211,10 @@ function glance(its,dn,isNow,c){try{const n=its.length,k=its.filter(i=>dn.has(i.
 let nx=its.find(i=>!dn.has(i.id)&&(!isNow||hmn(i.t)>=c.m))||its.find(i=>!dn.has(i.id));
 const txt=!n?'Nothing planned yet':(k===n?'All done. Enjoy the rest of the day.':nx?`Next ${esc(nx.t||'')} ${esc(String(nx.x||'').slice(0,46))}`:'');
 return `<div class="glance"><div class="gl-n"><b>${k}</b>/${n}<span>done</span></div><div class="gl-t">${txt}</div><div class="gl-bs">${flightsAll().some(f=>f.day===sel)?'<button class="btn ghost gl-b" data-a="checkin">Check-in</button>':''}<button class="btn ghost gl-b" data-a="pack">Pack</button></div></div>`}catch(e){return''}}
-const TA_APP='https://apps.apple.com/in/app/tripadvisor-plan-book-trips/id284876795';
+const TA_APP='https://www.tripadvisor.in/';
 const TA_PLACE={10:'Khopoli',11:'Andheri East Mumbai',12:'Port Blair',13:'Havelock Island',14:'Havelock Island',15:'Havelock Island',16:'Havelock Island',17:'Neil Island Andaman',18:'Port Blair',19:'Port Blair',20:'Port Blair'};
 function taCard(n){const p=TA_PLACE[n]||'Andaman',q=encodeURIComponent(p);
- return `<div class="card ta"><div class="eyebrow" style="margin-bottom:8px">Activities and food · ${esc(p)}</div><div class="tarow"><a class="btn ghost" data-ta="1" href="https://www.tripadvisor.in/Search?q=${q}%20things%20to%20do" target="_blank" rel="noopener noreferrer">Things to do</a><a class="btn ghost" data-ta="1" href="https://www.tripadvisor.in/Search?q=${q}%20restaurants" target="_blank" rel="noopener noreferrer">Where to eat</a><a class="btn ghost" href="${TA_APP}" target="_blank" rel="noopener noreferrer">TripAdvisor app</a></div></div>`}
+ return `<div class="card ta"><div class="eyebrow" style="margin-bottom:8px">Activities and food · ${esc(p)}</div><div class="tarow"><a class="btn ghost" data-ta="1" href="https://www.tripadvisor.in/Search?q=${q}%20things%20to%20do" target="_blank" rel="noopener noreferrer">Things to do</a><a class="btn ghost" data-ta="1" href="https://www.tripadvisor.in/Search?q=${q}%20restaurants" target="_blank" rel="noopener noreferrer">Where to eat</a><a class="btn ghost" data-ta="1" href="${TA_APP}" target="_blank" rel="noopener noreferrer">Open TripAdvisor</a></div></div>`}
 function viewToday(){
  const c=clock();if(sel==null||!dayOf(sel))sel=c.day;const d=dayOf(sel);const its=itemsFor(sel);const dn=new Set(ST.done);for(const kk in ST.syn.chk)if(kk.startsWith('a_')){const id0=kk.slice(2);ST.syn.chk[kk]?dn.add(id0):dn.delete(id0)}
  let h=`<div class="top"><div><div class="eyebrow">${dow(d)}</div><h1>${esc(d.title)}</h1></div></div>${installBanner()}${stat()}`;
@@ -223,7 +223,7 @@ function viewToday(){
  if(c.pv)h+=`<div class="card" style="margin-bottom:14px"><div class="eyebrow" style="margin-bottom:8px">Preview mode</div><div class="pv"><select class="in" id="pvd" aria-label="Preview day">${DAYS.map(x=>`<option value="${x.n}"${x.n===c.day?' selected':''}>${dow(x)}</option>`).join('')}</select><input class="in" id="pvt" type="time" value="${hm(c.m)}" aria-label="Preview time"></div><button class="btn ghost" data-a="pvoff">Use real clock</button></div>`;
  const isNow=(c.live||c.pv)&&c.day===sel;
  if(isNow)h+=`<div id="leavec"></div><section class="now" style="${theme(d)}" id="nowc"></section>`;
- h+=kidCard(d,its,dn);
+ h+=locCard(sel);h+=kidCard(d,its,dn);
  const cover=getPh('cover-'+sel);
  h+=`<div class="cover" style="${theme(d)}"><div class="art">${cover?`<img src="${cover}" alt="">`:SC[d.sc]||''}</div><button class="photo" data-ph="cover-${sel}" data-q="${esc(d.title)}">${cover?'Change photo':'Add photo'}</button><div class="meta"><div style="display:flex;gap:6px;flex-wrap:wrap">${early(its)?'<span class="pill rose">Early start '+its[0].t+'</span>':''}<span class="pill mint">${esc(d.stay.replace(/ \(.*\)/,''))}</span></div></div></div><div class="dinfo" id="dinfo"></div>${glance(its,dn,isNow,c)}`;
  h+=taCard(sel);
@@ -378,6 +378,7 @@ function settingsSheet(){const c=cfg();const fromFile=!!(window.FB&&window.FB.pr
   <p class="route" id="kcombo" style="margin:0" ${kidOn()&&momOn()?'':'hidden'}>Both modes are on: Family Magic ✨ is active.</p>
   <div class="swrow"><div><b>Sounds</b><p class="route" style="margin:2px 0 0">A 2 to 3 second tune. Works with or without the modes. Silent if the phone is on silent.</p></div><input class="sw" type="checkbox" switch data-a="ksnd" ${sndOn()?'checked':''} aria-label="Sounds"></div>
   <div class="swrow"><div><b>Falling effects</b><p class="route" style="margin:2px 0 0">Snow, stars, bubbles or flowers drifting on screen. Works with or without the modes.</p></div><input class="sw" type="checkbox" switch data-a="kfx" ${fxOn()?'checked':''} aria-label="Falling effects"></div>
+  <div class="swrow"><div><b>Match the plan to my location</b><p class="route" style="margin:2px 0 0">Uses your phone’s location to check you are where the day’s plan says. Never shared or saved anywhere except on this phone.</p></div><input class="sw" type="checkbox" switch data-a="locsw" ${locOn()?'checked':''} aria-label="Match the plan to my location"></div>
   <button class="btn ghost" data-a="kplay" style="width:100%">Play today\u2019s tune</button>
  <div><div class="eyebrow" style="margin-bottom:8px">Text size (this phone)</div><div class="fsz" role="group" aria-label="Text size">${[['s','Small','14px'],['m','Normal','17px'],['l','Large','20px'],['xl','Extra large','23px']].map(([k,l,s])=>`<button data-fs="${k}" aria-pressed="${k===curFs()}"><span style="font-size:${s};display:block">Aa</span><span style="font-size:11px">${l}</span></button>`).join('')}</div></div>
  <div><div class="eyebrow" style="margin-bottom:8px">Colour mode (this phone)</div><div class="pals" role="group" aria-label="Colour mode">${Object.keys(window.PALS).map(k=>`<button class="pal" data-pal="${k}" aria-pressed="${k===curPal()}"><i><b style="background:${window.PALS[k][1]}"></b><b style="background:${window.PALS[k][3]}"></b><b style="background:${window.PALS[k][2]}"></b></i>${window.PALS[k][0]}</button>`).join('')}</div></div>
@@ -410,7 +411,7 @@ function kidHint(x){const s=x.toLowerCase();
  if(/cab|drive|transfer/.test(s))return'Water and a small toy. Let her nap on the way';
  if(/light & sound|show|sunset/.test(s))return'Carry a jacket. Fine to leave early if she is tired';
  if(/wake up/.test(s))return'Let her sleep in the cab';return''}
-function xtra(it){try{const m=mapLink(placeFor(it.x)),kon=kidOn(),mon=momOn(),k=kon?kidHint(it.x):'',fun=kon?kidFun(it):'',mn=mon?momNote(it):null;return(m||k||fun||mn)?`<div class="xtra">${m}${k?`<span class="tag lav">${esc(KN())}: ${esc(k)}</span>`:''}${fun?`<span class="kfun">${esc(fun)}</span>`:''}${mn?`<span class="mnote ${mn[0]}">${{ok:'✅',care:'⚠️',skip:'🚫'}[mn[0]]} ${esc(mn[1])}</span>`:''}</div>`:''}catch(e){return''}}
+function xtra(it){try{const m=mapLink(placeFor(it.x)),kon=kidOn(),mon=momOn(),k=kon?kidHint(it.x):'',fun=kon?kidFun(it):'',mn=mon?momNote(it):null;return(m||k||fun||mn)?`<div class="xtra">${m}${k?`<span class="tag lav">${esc(KN())}: ${esc(k)}</span>`:''}${fun?`<span class="kfun">${esc(fun)}</span>`:''}${mn?`<span class="mnote ${mn[0]}">${{ok:'✅',care:'⚠️',skip:'🚫'}[mn[0]]} <b>Mum:</b> ${esc(mn[1])}</span>`:''}</div>`:''}catch(e){return''}}
 /* ================= Kiana mode: themes, falling effects, music, fun notes ================= */
 const KT={
  ice:{n:'Ice Kingdom',e:'❄️',t:'Snow, sparkle and a very cool day',p:['❄','❅','❆','✨','❄','❆'],bg:'#EAF5FF',g:'linear-gradient(180deg,#D6EAFF 0,#EEF7FF 40%,#EAF5FF 100%)',card:'#FFFFFF',ink:'#17304D',soft:'#51698A',line:'#CCE0F4',ac:'#3372B6',bar:'#1D3F6B',m:[79,240,'sine',[0,4,7,12,9,7,4,7,9,12,16,12]]},
@@ -513,6 +514,10 @@ function momNote(it){try{const d=sel!=null?sel:clock().day,s=(it.x||'').toLowerC
 const MSIS={10:'Be mummy’s helper: carry her water bottle and find her a nice seat',11:'Hold mummy’s hand at the splash zone and say slow and steady',12:'Remind mummy to sip water every time the plane goes ding',13:'Be the captain’s helper: tell mummy when it is time for water and a rest',14:'Collect 3 shells for the baby’s treasure box',15:'Teach the baby the names of 5 fish',16:'Find a heart-shaped shell for mummy',17:'Draw a sand picture for the baby',18:'Whisper good morning to the sun for mummy and the baby',19:'Pick a tiny souvenir for the baby',20:'Tell the clouds we are bringing home a brand new adventure'};
 const MAGIC={n:'Family Magic',e:'✨',t:'Kiana and her baby sibling, one magical journey',bg:'#FBF3FF',g:'linear-gradient(180deg,#EBD9FF 0,#FFEAF5 38%,#FFF6DD 100%)',card:'#FFFFFF',ink:'#2B1B45',soft:'#665583',line:'#E5D5F4',ac:'#7B2FC0',bar:'#3A1F66',m:[72,150,'sine',[0,4,7,12,16,19,24,19,16,12,7,4]]};
 const TH=Object.assign({},KT,MT,{magic:MAGIC});
+const isMg=k=>k==='magic'||/^c\d+$/.test(k||'');
+for(let d=10;d<=20;d++){try{const K=KT[KDAY[d]||'ice'],M=MT[MDAY[d]||'m_bunny'],B=K.dark?K:M.dark?M:K;
+ TH['c'+d]=Object.assign({},B,{n:K.n+' × '+M.n,e:K.e+M.e,t:'Kiana and her baby sibling: '+K.n.toLowerCase()+' meets '+M.n.toLowerCase(),
+  g:(K.dark||M.dark)?B.g:'linear-gradient(165deg,'+K.bg+' 0,'+M.bg+' 58%,#FFF6DD 100%)',m:[K.m[0],K.m[1],K.m[2],K.m[3]],ka:K.ac,ma:M.ac,up:false})}catch(e){}}
 
 /* ---- state: modes, sounds, effects ---- */
 const momOn=()=>lsGet('an_mom','0')==='1';
@@ -522,7 +527,7 @@ const sndOn=()=>flagOn('an_ksnd'),fxOn=()=>flagOn('an_kfx');
 function kDay(){return sel!=null?sel:clock().day}
 function kidKey(){return KDAY[kDay()]||'ice'}
 function themeInfo(){const d=kDay(),kk=KDAY[d]||'ice',mk=MDAY[d]||'m_bunny';
- if(kidOn()&&momOn())return{attr:'magic',pk:'magic',kk,mk};
+ if(kidOn()&&momOn()){const c='c'+d,a=TH[c]?c:'magic';return{attr:a,pk:a,kk,mk}}
  if(kidOn())return{attr:kk,pk:kk,kk,mk};
  if(momOn())return{attr:mk,pk:mk,kk,mk};
  if(fxOn()||sndOn())return{attr:null,pk:kk,kk,mk};
@@ -534,15 +539,15 @@ function kidCss(){if(document.getElementById('kcss'))return;
   c+=`html.kn[data-kt="${k}"]{--bg:${T.bg};--card:${T.card};--ink:${T.ink};--soft:${T.soft};--line:${T.line};--accent:${T.ac};--accent-ink:${T.dark?'#14163A':'#FFFFFF'};${tn};--shadow:0 6px 20px rgba(0,0,0,${T.dark?.4:.1});color-scheme:${T.dark?'dark':'light'}}html.kn[data-kt="${k}"] body{background:${T.g}}`}
  const el=document.createElement('style');el.id='kcss';el.textContent=c;document.head.appendChild(el)}
 const kReduce=()=>{try{return window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}};
-function partsFor(info){if(info.pk==='magic'){const a=KT[info.kk].p,b=MT[info.mk].p;return[a[0],b[0],'✨',a[1],b[1],'⭐',a[2],b[3],'💫','💖']}return TH[info.pk].p}
+function partsFor(info){if(isMg(info.pk)){const a=KT[info.kk].p,b=MT[info.mk].p;return[a[0],b[0],'✨',a[1],b[1],'⭐',a[2],b[3],'💫','💖']}return TH[info.pk].p}
 function kidFx(info){let f=document.getElementById('kfx');
  if(!info||!info.pk||!fxOn()){if(f)f.remove();kStar(false);return}
  if(kReduce()){if(f)f.remove();return}
  if(!f){f=document.createElement('div');f.id='kfx';f.setAttribute('aria-hidden','true');document.body.appendChild(f)}
- f.innerHTML='';const P=partsFor(info),up=info.pk!=='magic'&&TH[info.pk].up,n=info.pk==='magic'?20:18;
+ f.innerHTML='';const P=partsFor(info),up=!isMg(info.pk)&&TH[info.pk].up,n=isMg(info.pk)?20:18;
  for(let i=0;i<n;i++){const s=document.createElement('i');s.textContent=P[i%P.length];
   s.style.cssText=`left:${Math.round(Math.random()*96)}%;font-size:${14+Math.round(Math.random()*16)}px;animation-name:${up?'krise':'kfall'};animation-duration:${(7+Math.random()*8).toFixed(1)}s;animation-delay:-${(Math.random()*12).toFixed(1)}s;--dx:${Math.round((Math.random()-.5)*90)}px`;f.appendChild(s)}
- kStar(info.pk==='magic')}
+ kStar(isMg(info.pk))}
 function kStar(on){let e=document.getElementById('kstar');if(!on||kReduce()){if(e)e.remove();return}if(!e){e=document.createElement('div');e.id='kstar';e.setAttribute('aria-hidden','true');e.textContent='🌠';document.body.appendChild(e)}}
 function kBurst(x,y){try{if(kReduce())return;const E=['✨','⭐','💖','🌟','💫','🎀'],f=document.createElement('div');f.className='kburst';f.setAttribute('aria-hidden','true');f.style.left=x+'px';f.style.top=y+'px';
  for(let i=0;i<12;i++){const s=document.createElement('i'),a=i/12*Math.PI*2,r=60+Math.random()*50;s.textContent=E[i%E.length];s.style.setProperty('--bx',Math.round(Math.cos(a)*r)+'px');s.style.setProperty('--by',Math.round(Math.sin(a)*r)+'px');f.appendChild(s)}
@@ -561,14 +566,14 @@ function kSnd(key,full,force){try{
   const tone=(fr,st,dur,vol)=>{const o=KA.createOscillator(),g=KA.createGain();o.type=wave;o.frequency.value=fr;g.gain.setValueAtTime(0.0001,st);g.gain.exponentialRampToValueAtTime(vol,st+.012);g.gain.exponentialRampToValueAtTime(0.0001,st+dur);o.connect(g);g.connect(m);o.start(st);o.stop(st+dur+.05);
    if(wave==='sine'){const b=KA.createOscillator(),bg=KA.createGain();b.type='sine';b.frequency.value=fr*2;bg.gain.setValueAtTime(0.0001,st);bg.gain.exponentialRampToValueAtTime(vol*.35,st+.01);bg.gain.exponentialRampToValueAtTime(0.0001,st+dur*.6);b.connect(bg);bg.connect(m);b.start(st);b.stop(st+dur)}};
   for(let i=0;i<n;i++)tone(hz(root+notes[i]),t+i*step,step*1.8,.5);
-  if(full){const e=t+n*step;[0,4,7].forEach(x=>tone(hz(root+x),e,1.0,.35));if(key==='magic'){[19,24,28,31].forEach((x,i)=>tone(hz(root+x),e+.15+i*.12,.8,.22))}}
+  if(full){const e=t+n*step;[0,4,7].forEach(x=>tone(hz(root+x),e,1.0,.35));if(isMg(key)){[19,24,28,31].forEach((x,i)=>tone(hz(root+x),e+.15+i*.12,.8,.22))}}
   else{tone(hz(root),t+n*step,.7,.35)}};
  if(KA.state==='running')go();else KA.resume().then(go).catch(()=>{})}catch(e){}}
 function kidApply(){try{const r=document.documentElement,I=themeInfo(),sig=I.attr||('amb:'+(I.pk||''));
  if(kidApply.k===sig&&(!!I.attr)===r.classList.contains('kn'))return;
  const first=kidApply.k===undefined;kidApply.k=sig;
- if(!I.attr){if(r.classList.contains('kn')||r.classList.contains('km')||r.classList.contains('kc')){r.classList.remove('kn','km','kc');r.removeAttribute('data-kt');if(window.applyPal)window.applyPal(curPal())}}
- else{kidCss();const T=TH[I.attr];r.classList.add('kn');r.classList.toggle('km',momOn());r.classList.toggle('kc',kidOn()&&momOn());r.setAttribute('data-kt',I.attr);r.setAttribute('data-theme',T.dark?'dark':'light');
+ if(!I.attr){if(r.classList.contains('kn')||r.classList.contains('km')||r.classList.contains('kc')){r.classList.remove('kn','km','kc');r.removeAttribute('data-kt');r.style.removeProperty('--ka');r.style.removeProperty('--ma');if(window.applyPal)window.applyPal(curPal())}}
+ else{kidCss();const T=TH[I.attr];r.classList.add('kn');r.classList.toggle('km',momOn());r.classList.toggle('kc',kidOn()&&momOn());r.setAttribute('data-kt',I.attr);if(T.ka){r.style.setProperty('--ka',T.ka);r.style.setProperty('--ma',T.ma)}else{r.style.removeProperty('--ka');r.style.removeProperty('--ma')}r.setAttribute('data-theme',T.dark?'dark':'light');
   const m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',T.bar)}
  kidFx(I);
  if(!first&&I.pk&&Date.now()-kGest<1500)kSnd(I.attr||I.pk,false)}catch(e){}}
@@ -598,6 +603,30 @@ function setMode(which,on){try{const before=anyMode();lsSet(which==='kid'?'an_ki
  kidApply.k=undefined;render('keep');syncSw();
  if(on){const I=themeInfo();if(I.attr)kSnd(I.attr,true)}}catch(e){}}
 
+/* ---- location: match the plan to where we really are (needs a signal only for the first fix, last fix is kept) ---- */
+const SITES={hyd:{n:'Hyderabad',la:17.385,lo:78.487,r:60},khopoli:{n:'Khopoli (Imagicaa)',la:18.78,lo:73.34,r:30},mumbai:{n:'Mumbai',la:19.08,lo:72.88,r:45},pb:{n:'Port Blair',la:11.64,lo:92.73,r:16},hav:{n:'Havelock (Swaraj Dweep)',la:11.98,lo:92.98,r:11},neil:{n:'Neil Island (Shaheed Dweep)',la:11.83,lo:93.05,r:7}};
+const DPLACE={10:['hyd','khopoli'],11:['khopoli','mumbai'],12:['mumbai','pb'],13:['pb','hav'],14:['hav'],15:['hav'],16:['hav'],17:['hav','neil'],18:['neil','pb'],19:['pb'],20:['pb','hyd']};
+const locOn=()=>lsGet('an_locon','1')!=='0';
+const LOC={d:null,busy:false,dis:0};
+try{const o=JSON.parse(lsGet('an_loc','null'));if(o&&typeof o.la==='number'&&typeof o.lo==='number')LOC.d=o}catch(e){}
+function hav(a,b,c,d){const R=6371,r=Math.PI/180,x=Math.sin((c-a)*r/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin((d-b)*r/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
+function locSite(o){if(!o)return null;let best=null;for(const k in SITES){const S=SITES[k],d=hav(o.la,o.lo,S.la,S.lo);if(d<=S.r&&(!best||d<best.d))best={k,d}}return best}
+function locNearest(o){let best=null;for(const k in SITES){const S=SITES[k],d=hav(o.la,o.lo,S.la,S.lo);if(!best||d<best.d)best={k,d}}return best}
+function locFix(){if(LOC.busy||!locOn()||!navigator.geolocation)return;if(LOC.d&&Date.now()-LOC.d.t<5*60e3)return;LOC.busy=true;
+ let done=false;const fin=()=>{LOC.busy=false;done=true};
+ try{navigator.geolocation.getCurrentPosition(p=>{if(done)return;fin();try{const o={la:+p.coords.latitude.toFixed(4),lo:+p.coords.longitude.toFixed(4),ac:Math.round(p.coords.accuracy||0),t:Date.now()};
+   if(!isFinite(o.la)||!isFinite(o.lo))return;const was=locSig();LOC.d=o;lsSet('an_loc',JSON.stringify(o));if(locSig()!==was&&tab==='today'&&!document.querySelector('.ov'))render('keep')}catch(e){}},
+  e=>{fin();if(e&&e.code===1)LOC.dis=1},{enableHighAccuracy:false,timeout:9000,maximumAge:600000});
+  setTimeout(()=>{if(!done)fin()},12000)}catch(e){LOC.busy=false}}
+function locSig(){try{const o=LOC.d,c=clock();if(!o)return'';const s=locSite(o);return(s?s.k:'x')+'|'+(c.day)}catch(e){return''}}
+function locCard(n){try{if(!locOn())return'';const o=LOC.d,c=clock();
+ if(!o)return LOC.dis?'<div class="card loc"><div class="eyebrow">Location</div><p class="route" style="margin:2px 0 0">Location is off for this app, so the day is picked from the date. You can allow it in the iPhone Settings, Privacy, Location Services, Safari Websites.</p></div>':'';
+ const st=locSite(o),age=Math.round((Date.now()-o.t)/60000),old=age>180?` · last fix ${age>=1440?Math.round(age/1440)+' d':Math.round(age/60)+' h'} ago`:'';
+ const exp=DPLACE[n]||[];
+ if(!st){const nr=locNearest(o);return `<div class="card loc"><div class="eyebrow">📍 On the move${esc(old)}</div><p class="route" style="margin:2px 0 0">${Math.round(nr.d)<2000?'About '+Math.round(nr.d)+' km from '+esc(SITES[nr.k].n)+'.':'You are far from the trip route.'} Today’s plan: ${esc(exp.map(k=>SITES[k].n).join(' → '))}.</p></div>`}
+ if(exp.includes(st.k))return `<div class="card loc ok"><div class="eyebrow">📍 ${esc(SITES[st.k].n)} · matches today’s plan${esc(old)}</div></div>`;
+ const cand=DAYS.map(d=>d.n).filter(d=>(DPLACE[d]||[]).includes(st.k)).sort((a,b)=>Math.abs(a-n)-Math.abs(b-n)).slice(0,2);
+ return `<div class="card loc warn"><div class="eyebrow">📍 You are in ${esc(SITES[st.k].n)}${esc(old)}</div><p class="route" style="margin:2px 0 6px">Day ${n} of the plan is ${esc(exp.map(k=>SITES[k].n).join(' → '))}. Plans change. Want the plan for where you are?</p><div class="tarow">${cand.map(d=>`<button class="btn ghost" data-go="${d}">Show ${esc(dow(dayOf(d)))}</button>`).join('')}</div></div>`}catch(e){return''}}
 /* sunrise and sunset (offline maths), IST */
 function sunTimes(lat,lon,y,mo,d){const J=Date.UTC(y,mo,d,12)/864e5+2440587.5,n=Math.ceil(J-2451545+0.0008),rad=Math.PI/180;
  const Js=n-lon/360,M=(357.5291+0.98560028*Js)%360,C=1.9148*Math.sin(M*rad)+0.02*Math.sin(2*M*rad)+0.0003*Math.sin(3*M*rad),L=(M+C+180+102.9372)%360;
@@ -650,7 +679,7 @@ function paintLeave(){try{const el=$('leavec');if(!el)return;const c=clock(),its
  el.innerHTML=`<div class="leave ${tone}"><b>Be ready in ${t}</b><span>${nx.t} · ${esc(nx.x.slice(0,90))}</span></div>`}catch(e){}}
 /* emergency card */
 /* flight check-in: IndiGo web check-in link, window timer and DigiYatra steps */
-const BUILD='build 9 Oct 2026 E';
+const BUILD='build 9 Oct 2026 F';
 const IGO_URL='https://www.goindigo.in/web-check-in.html',DY_URL='https://apps.apple.com/in/app/digi-yatra/id6479873321';
 function flightsAll(){const out=[];try{for(const d of DAYS){const its=itemsFor(d.n);const hmn=t=>{const m=/^(\d{1,2}):(\d{2})/.exec(t||'');return m?(+m[1])*60+(+m[2]):-1};
  for(const it of its){const m=/IndiGo\s+(6E\s*\d+)\s+departs\s+([^,(]+)/i.exec(it.x||'');const t=/^(\d{1,2}):(\d{2})/.exec(it.t||'');if(!m||!t)continue;
@@ -815,10 +844,11 @@ document.addEventListener('click',e=>{
  else if(a==='kidsw')setMode('kid',b.checked)
  else if(a==='momsw')setMode('mom',b.checked)
  else if(a==='ksnd'){lsSet('an_ksnd',b.checked?'1':'0');refreshFx();if(b.checked){const I=themeInfo(),k=I.attr||I.pk;if(k)kSnd(k,false)}}
+ else if(a==='locsw'){lsSet('an_locon',b.checked?'1':'0');LOC.dis=0;if(b.checked){LOC.d=null;locFix()}render('keep')}
  else if(a==='kfx'){lsSet('an_kfx',b.checked?'1':'0');refreshFx()}
  else if(a==='kplay'){const I=themeInfo();kSnd(I.attr||I.pk||kidKey(),true,true)}
  else if(a==='momguide')momSheet()
- else if(a==='kburst'){const r=b.getBoundingClientRect();kBurst(r.left+r.width/2,r.top+r.height/2);kSnd('magic',false)}
+ else if(a==='kburst'){const r=b.getBoundingClientRect();kBurst(r.left+r.width/2,r.top+r.height/2);kSnd(themeInfo().attr||'magic',false)}
  else if(a==='fit'){const v=b.dataset.v;try{localStorage.setItem('an_fit',v)}catch(e){}if(window.fitApp)window.fitApp();document.querySelectorAll('[data-a="fit"]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===v)))}
  else if(a==='kid'){lsSet('an_kiana',kidOn()?'0':'1');b.textContent='Kiana mode: '+(kidOn()?'ON':'OFF');render('keep')}
  else if(a==='savecfg'){const p=$('s-p').value.trim(),k=$('s-k').value.trim();if(p&&k){ST.cfg={projectId:p,apiKey:k};save();SYNC.denied=false;checkConn()}}
@@ -866,7 +896,8 @@ function start(){
  // restore where the user was; on a new live trip day jump to today
  const c=clock();tab=ST.ui.tab||'today';sel=ST.ui.sel&&dayOf(ST.ui.sel)?ST.ui.sel:c.day;
  if(c.live&&ST.ui.day&&ST.ui.day!==c.day&&!ST.ui.pv){sel=c.day;tab='today'}
- render('saved');loadExtras();
+ try{const seen=+lsGet('an_seen','0');if(c.live&&!ST.ui.pv&&(!seen||Date.now()-seen>20*60e3)){sel=c.day;tab='today'}}catch(e){}
+ render('saved');loadExtras();locFix();
  if(ST.cf.length)showConflict();
  poll();flush()}
 (function(){let x0=0,y0=0,t0=0,ok=false,pull=0;const P=()=>document.getElementById('pane');
