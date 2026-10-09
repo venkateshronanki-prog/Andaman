@@ -205,7 +205,7 @@ const stat=()=>`<div class="stat" id="stat"></div>`;
 function drawNav(){$('nav').innerHTML=TABS.map(([k,l])=>`<button data-t="${k}" aria-selected="${tab===k}" aria-label="${l}"><svg viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>${l}</button>`).join('')}
 function thumb(it){const ph=getPh(it.id),k=kindOf(it.x);
  return `<button class="th" data-ph="${esc(it.id)}" data-q="${esc(it.x.slice(0,60))}" aria-label="${ph?'Change photo':'Add photo'}">${ph?`<img src="${ph}" alt="">`:`<svg viewBox="0 0 96 96" width="52" height="52" aria-hidden="true"><use href="#k-${k}"/></svg>`}<i>${ph?'✎':'+'}</i></button>`}
-function installBanner(){const standalone=window.navigator.standalone||matchMedia('(display-mode: standalone)').matches;if(standalone||ST.ui.nohint)return'';
+function installBanner(){let standalone=false;try{standalone=!!(window.navigator.standalone||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches))}catch(e){}if(standalone||ST.ui.nohint)return'';
  return `<div class="install"><div><b>Install this app.</b> Tap the Share button in Safari, then Add to Home Screen. It then opens full screen and works with no signal.</div><button data-a="hint">Got it</button></div>`}
 function glance(its,dn,isNow,c){try{const n=its.length,k=its.filter(i=>dn.has(i.id)).length;const hmn=t=>{const m=/^(\d+):(\d+)/.exec(t||'');return m?(+m[1])*60+(+m[2]):-1};
 let nx=its.find(i=>!dn.has(i.id)&&(!isNow||hmn(i.t)>=c.m))||its.find(i=>!dn.has(i.id));
@@ -679,7 +679,7 @@ function paintLeave(){try{const el=$('leavec');if(!el)return;const c=clock(),its
  el.innerHTML=`<div class="leave ${tone}"><b>Be ready in ${t}</b><span>${nx.t} · ${esc(nx.x.slice(0,90))}</span></div>`}catch(e){}}
 /* emergency card */
 /* flight check-in: IndiGo web check-in link, window timer and DigiYatra steps */
-const BUILD='build 9 Oct 2026 F';
+const BUILD='build 9 Oct 2026 G';
 const IGO_URL='https://www.goindigo.in/web-check-in.html',DY_URL='https://apps.apple.com/in/app/digi-yatra/id6479873321';
 function flightsAll(){const out=[];try{for(const d of DAYS){const its=itemsFor(d.n);const hmn=t=>{const m=/^(\d{1,2}):(\d{2})/.exec(t||'');return m?(+m[1])*60+(+m[2]):-1};
  for(const it of its){const m=/IndiGo\s+(6E\s*\d+)\s+departs\s+([^,(]+)/i.exec(it.x||'');const t=/^(\d{1,2}):(\d{2})/.exec(it.t||'');if(!m||!t)continue;
