@@ -223,6 +223,7 @@ function viewToday(){
  if(c.pv)h+=`<div class="card" style="margin-bottom:14px"><div class="eyebrow" style="margin-bottom:8px">Preview mode</div><div class="pv"><select class="in" id="pvd" aria-label="Preview day">${DAYS.map(x=>`<option value="${x.n}"${x.n===c.day?' selected':''}>${dow(x)}</option>`).join('')}</select><input class="in" id="pvt" type="time" value="${hm(c.m)}" aria-label="Preview time"></div><button class="btn ghost" data-a="pvoff">Use real clock</button></div>`;
  const isNow=(c.live||c.pv)&&c.day===sel;
  if(isNow)h+=`<div id="leavec"></div><section class="now" style="${theme(d)}" id="nowc"></section>`;
+ h+=kidCard(d,its,dn);
  const cover=getPh('cover-'+sel);
  h+=`<div class="cover" style="${theme(d)}"><div class="art">${cover?`<img src="${cover}" alt="">`:SC[d.sc]||''}</div><button class="photo" data-ph="cover-${sel}" data-q="${esc(d.title)}">${cover?'Change photo':'Add photo'}</button><div class="meta"><div style="display:flex;gap:6px;flex-wrap:wrap">${early(its)?'<span class="pill rose">Early start '+its[0].t+'</span>':''}<span class="pill mint">${esc(d.stay.replace(/ \(.*\)/,''))}</span></div></div></div><div class="dinfo" id="dinfo"></div>${glance(its,dn,isNow,c)}`;
  h+=taCard(sel);
@@ -291,7 +292,7 @@ function render(restore){const p=$('pane');drawNav();
  else if(restore==='saved'){p.scrollTop=(ST.ui.sc&&ST.ui.sc[k])||0}
  else{p.scrollTop=0;if(tab==='today'){const cl=document.querySelector('.tl li.cur');if(cl)setTimeout(()=>cl.scrollIntoView({block:'center'}),60)}}
  centerChip();requestAnimationFrame(centerChip);
- ST.ui.tab=tab;ST.ui.sel=sel;ST.ui.day=ist().d;save()}
+ kidApply();ST.ui.tab=tab;ST.ui.sel=sel;ST.ui.day=ist().d;save()}
 let lastTop=0;
 function softRender(){if(softRender.r)return;softRender.r=requestAnimationFrame(()=>{softRender.r=0;if($('layer').childElementCount||!D)return;const p=$('pane'),t=p.scrollTop;render('keep');p.scrollTop=t})}
 document.addEventListener('scroll',e=>{if(e.target&&e.target.id==='pane'&&ST){ST.ui.sc[scKey()]=e.target.scrollTop;save()}},true);
@@ -372,7 +373,8 @@ function settingsSheet(){const c=cfg();const fromFile=!!(window.FB&&window.FB.pr
  <div class="srow"><span>Stretch screen down</span><span id="v-fit">${fitVal()}</span></div><input class="ios" type="range" id="r-fit" min="0" max="70" step="1" value="${fitVal()}" style="--p:${100*fitVal()/70}%">
  <div class="srow" style="margin-top:6px"><span>Lift bar up</span><span id="v-lift">${lsGet('an_lift','0')}</span></div><input class="ios" type="range" id="r-lift" min="0" max="40" step="1" value="${lsGet('an_lift','0')}" style="--p:${100*lsGet('an_lift','0')/40}%">
  <button class="btn ghost" data-a="fitreset" style="width:100%;margin-top:8px">Reset to standard position</button><p class="route" style="margin:6px 0 0">Stretch fills a blank strip under the bar. Lift raises the bar if it is cut off. Reset puts both back to the standard position and keeps them there.</p></div>
-  <div class="swrow"><div><b>Child mode</b><p class="route" style="margin:2px 0 0">Adds a short tip for your child under each activity.</p></div><input class="sw" type="checkbox" switch data-a="kidsw" ${kidOn()?'checked':''} aria-label="Child mode"></div>
+  <div class="swrow"><div><b>Kiana mode</b><p class="route" style="margin:2px 0 0">A fun theme for every day, falling stars, a short tune and playful notes for Kiana.</p></div><input class="sw" type="checkbox" switch data-a="kidsw" ${kidOn()?'checked':''} aria-label="Kiana mode"></div>
+  ${true?`<div class="swrow"><div><b>Kiana sounds</b><p class="route" style="margin:2px 0 0">A 2 to 3 second tune. Silent if the phone is on silent.</p></div><input class="sw" type="checkbox" switch data-a="ksnd" ${lsGet('an_ksnd','1')!=='0'?'checked':''} aria-label="Kiana sounds"></div><div class="swrow"><div><b>Falling effects</b><p class="route" style="margin:2px 0 0">Snow, stars and bubbles falling on screen.</p></div><input class="sw" type="checkbox" switch data-a="kfx" ${lsGet('an_kfx','1')!=='0'?'checked':''} aria-label="Falling effects"></div><button class="btn ghost" data-a="kplay" style="width:100%">Play today’s tune</button>`:''}
  <div><div class="eyebrow" style="margin-bottom:8px">Text size (this phone)</div><div class="fsz" role="group" aria-label="Text size">${[['s','Small','14px'],['m','Normal','17px'],['l','Large','20px'],['xl','Extra large','23px']].map(([k,l,s])=>`<button data-fs="${k}" aria-pressed="${k===curFs()}"><span style="font-size:${s};display:block">Aa</span><span style="font-size:11px">${l}</span></button>`).join('')}</div></div>
  <div><div class="eyebrow" style="margin-bottom:8px">Colour mode (this phone)</div><div class="pals" role="group" aria-label="Colour mode">${Object.keys(window.PALS).map(k=>`<button class="pal" data-pal="${k}" aria-pressed="${k===curPal()}"><i><b style="background:${window.PALS[k][1]}"></b><b style="background:${window.PALS[k][3]}"></b><b style="background:${window.PALS[k][2]}"></b></i>${window.PALS[k][0]}</button>`).join('')}</div></div>
  <div class="eyebrow" style="text-align:center;margin-top:10px;opacity:.6">${BUILD}</div>
@@ -404,7 +406,80 @@ function kidHint(x){const s=x.toLowerCase();
  if(/cab|drive|transfer/.test(s))return'Water and a small toy. Let her nap on the way';
  if(/light & sound|show|sunset/.test(s))return'Carry a jacket. Fine to leave early if she is tired';
  if(/wake up/.test(s))return'Let her sleep in the cab';return''}
-function xtra(it){try{const m=mapLink(placeFor(it.x)),k=kidOn()?kidHint(it.x):'';return(m||k)?`<div class="xtra">${m}${k?`<span class="tag lav">${esc(KN())}: ${esc(k)}</span>`:''}</div>`:''}catch(e){return''}}
+function xtra(it){try{const m=mapLink(placeFor(it.x)),on=kidOn(),k=on?kidHint(it.x):'',fun=on?kidFun(it):'';return(m||k||fun)?`<div class="xtra">${m}${k?`<span class="tag lav">${esc(KN())}: ${esc(k)}</span>`:''}${fun?`<span class="kfun">${esc(fun)}</span>`:''}</div>`:''}catch(e){return''}}
+/* ================= Kiana mode: themes, falling effects, music, fun notes ================= */
+const KT={
+ ice:{n:'Ice Kingdom',e:'❄️',t:'Snow, sparkle and a very cool day',p:['❄','❅','❆','✨','❄','❆'],bg:'#EAF5FF',g:'linear-gradient(180deg,#D6EAFF 0,#EEF7FF 40%,#EAF5FF 100%)',card:'#FFFFFF',ink:'#17304D',soft:'#51698A',line:'#CCE0F4',ac:'#3C86D6',bar:'#1D3F6B',m:[79,240,'sine',[0,4,7,12,9,7,4,7,9,12,16,12]]},
+ pups:{n:'Rescue Pups',e:'🐶',t:'Ready for a rescue mission, team',p:['🐾','🦴','⭐','🐾','🚒'],bg:'#FFF8E3',g:'linear-gradient(180deg,#FFEFB8 0,#FFF8E3 40%,#FFF8E3 100%)',card:'#FFFFFF',ink:'#1B3358',soft:'#5A6B86',line:'#F0E3B5',ac:'#1E6FD0',bar:'#14396B',m:[72,200,'triangle',[0,4,7,4,9,7,12,7,9,7,4,0]]},
+ hero:{n:'Super Hero City',e:'🦸',t:'Capes on, super traveller',p:['⭐','⚡','💫','⭐','🌟'],bg:'#F1F4FF',g:'linear-gradient(180deg,#DCE3FF 0,#F1F4FF 40%,#F1F4FF 100%)',card:'#FFFFFF',ink:'#1D2550',soft:'#5B6490',line:'#D3D9F3',ac:'#D8333F',bar:'#232C66',m:[67,200,'sawtooth',[0,0,7,7,12,7,12,16,12,7,12,19]]},
+ puddle:{n:'Puddle Pals',e:'🐷',t:'Jump in every muddy puddle',p:['💧','🐷','💧','🌧️','💦'],bg:'#FFF1F5',g:'linear-gradient(180deg,#FFD9E5 0,#FFF1F5 40%,#FFF1F5 100%)',card:'#FFFFFF',ink:'#4A2234',soft:'#8A5A6D',line:'#F6D5E0',ac:'#E04C7A',bar:'#6B2A44',m:[69,220,'triangle',[0,2,4,2,0,7,4,2,4,5,4,0]]},
+ rainbow:{n:'Rainbow Sunset',e:'🦄',t:'Sparkles, rainbows and magic',p:['🦄','🌈','⭐','💖','✨'],bg:'#F6F0FF',g:'linear-gradient(180deg,#E8DAFF 0,#FFEAF4 45%,#F6F0FF 100%)',card:'#FFFFFF',ink:'#33224F',soft:'#6E5C8F',line:'#E3D8F6',ac:'#8E55D6',bar:'#44287A',m:[72,260,'sine',[0,2,4,7,9,12,9,7,4,2,4,0]]},
+ reef:{n:'Mermaid Reef',e:'🧜‍♀️',t:'Bubbles, shells and friendly fish',p:['🫧','🐠','🐚','🫧','🐟'],up:1,bg:'#E6FAFA',g:'linear-gradient(0deg,#BDEEF0 0,#E6FAFA 45%,#E6FAFA 100%)',card:'#FFFFFF',ink:'#10404A',soft:'#4B7F88',line:'#C5E9EB',ac:'#13A3A8',bar:'#0B4D55',m:[70,280,'sine',[0,3,7,10,7,3,5,8,12,8,5,0]]},
+ pirate:{n:'Pirate Cove',e:'🏴‍☠️',t:'Yo ho ho, treasure ahead',p:['⚓','💰','🦜','⭐','🗝️'],bg:'#FBF3E4',g:'linear-gradient(180deg,#F3DFB8 0,#FBF3E4 40%,#FBF3E4 100%)',card:'#FFFFFF',ink:'#3E2A14',soft:'#7C6444',line:'#EBDDBF',ac:'#B8601B',bar:'#5A3813',m:[62,230,'triangle',[0,3,7,3,0,-2,0,3,7,10,7,3]]},
+ safari:{n:'Jungle Safari',e:'🦁',t:'Whispers in the jungle',p:['🍃','🦋','🌿','🐒','🍃'],bg:'#EFF9E8',g:'linear-gradient(180deg,#D5EFC2 0,#EFF9E8 40%,#EFF9E8 100%)',card:'#FFFFFF',ink:'#1F3D1B',soft:'#587A52',line:'#D3E9C6',ac:'#3E8E2F',bar:'#25521C',m:[65,210,'triangle',[0,4,7,9,7,4,0,2,4,7,4,0]]},
+ space:{n:'Space Explorers',e:'🚀',t:'Three, two, one, blast off',p:['⭐','🪐','✨','🚀','☄️','🌟'],dark:1,bg:'#0E1230',g:'linear-gradient(180deg,#0A0E28 0,#151B4A 60%,#0E1230 100%)',card:'#1A2150',ink:'#EAEEFF',soft:'#A9B3E6',line:'#2C3578',ac:'#7C8BFF',bar:'#0A0E28',m:[60,300,'sine',[0,7,12,14,12,7,19,14,12,7,5,0]]},
+ dino:{n:'Dino Land',e:'🦖',t:'Stomp, roar and explore',p:['🦕','🥚','🌴','🦖','🌋','🍃'],bg:'#FFF4E5',g:'linear-gradient(180deg,#FFE0B8 0,#FFF4E5 40%,#FFF4E5 100%)',card:'#FFFFFF',ink:'#43280F',soft:'#85684A',line:'#F2DEC1',ac:'#D9731A',bar:'#5E3511',m:[55,230,'square',[0,0,5,0,7,5,0,0,5,7,10,7]]},
+ cloud:{n:'Sky Express',e:'✈️',t:'Up in the clouds, heading home',p:['☁️','✈️','🎈','☁️','🌤️'],bg:'#E8F6FF',g:'linear-gradient(180deg,#BFE5FF 0,#E8F6FF 45%,#E8F6FF 100%)',card:'#FFFFFF',ink:'#13365A',soft:'#4E7195',line:'#C9E3F6',ac:'#1E8AE0',bar:'#12457A',m:[74,250,'sine',[0,4,7,11,7,4,2,5,9,12,9,4]]}};
+const KDAY={10:'ice',11:'pups',12:'hero',13:'puddle',14:'rainbow',15:'reef',16:'pirate',17:'safari',18:'space',19:'dino',20:'cloud'};
+const KMIS={10:'Spot 3 aeroplanes and wave goodbye to home',11:'Make the biggest splash and count 5 slides',12:'Be a super traveller: find the first palm tree you see',13:'Count the waves and spot a dolphin from the boat',14:'Collect 5 shells and watch the sun go to bed',15:'Count 10 colourful fish in the water',16:'Find a crab and give it a funny name',17:'Find a shell shaped like a heart',18:'Wake up early and say good morning to the sun',19:'Find the lighthouse and wave to the boats',20:'Spot a cloud that looks like an animal'};
+const KFUN={alarm:['Rise and shine, explorer! Today is an adventure day 🌞','Wake-up wiggle: stretch like a cat, then roar like a lion 🦁','Put on your explorer hat and shoes 🎒'],
+ food:['Try one new bite and give it a score out of 5 ⭐','Be a food detective: how many colours are on your plate? 🍽️','Eat like a hero 💪 then ask for a little treat'],
+ plane:['Seat belt on like a pilot: ready for take-off! ✈️','Look out of the window: find a cloud shaped like an animal ☁️','Count how many aeroplanes you can spot ✈️'],
+ ferry:['Wave to the waves and count the boats 🚤','Look out for a dolphin or a flying fish 🐬','Life jacket on, Captain! Hold the rail with a grown-up ⚓'],
+ snorkel:['Peek under the water: count the colourful fish 🐠','Be a sea explorer: can you spot a starfish? ⭐','Breathe slow and calm like a fish 🫧'],
+ park:['Pick your favourite ride and tell us why 🎢','Do a big happy scream, then a tiny one 😄','Count the splashes you make 💦'],
+ sight:['Be a history detective: find the oldest thing here 🔍','Whisper like an explorer 🤫','Find a bird and give it a name 🕊️'],
+ cab:['I spy: find something red, something green, something tall 🚗','Count the white cars. Who reaches 10 first? 🏁','Sing your favourite song in the car 🎶'],
+ beach:['Build a sand castle and name the king 🏰','Find 3 shells and make a treasure box 🐚','Write your name in the sand ✍️'],
+ bed:['Cuddle time: tell us your best part of today 💤','Close your eyes and take 10 slow breaths 🌙','Rest like a sleepy bear 🐻'],
+ pack:['Pack your own bag: teddy, hat, water bottle 🧸','You are bag captain: check each bag ✅'],
+ sun:['Say hello to the sun and make a wish 🌅','Wave at the sun, it is waving back ☀️'],
+ pin:['Look around: what is the coolest thing you can see? 👀','Take a deep breath and smile for a photo 📸']};
+function kHash(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h)}
+function kidFun(it){try{const L=KFUN[kindOf(it.x)]||KFUN.pin;return L[kHash(String(it.id))%L.length]}catch(e){return''}}
+function kidKey(){const n=sel!=null?sel:clock().day;return KDAY[n]||'ice'}
+function kidCss(){if(document.getElementById('kcss'))return;
+ const L={'--sky':'#DCEFF8','--sky-s':'#2F6F9E','--mint':'#D8F1E4','--mint-s':'#2A7A58','--peach':'#FFE4D6','--peach-s':'#B0573A','--lav':'#E9E2F8','--lav-s':'#6A52A8','--butter':'#FFF3C9','--butter-s':'#85690F','--rose':'#FADCE0','--rose-s':'#A5485A','--ok':'#2A7A58','--warn':'#85690F','--bad':'#A5485A'};
+ const Dk={'--sky':'#1F3A4D','--sky-s':'#9CCBEE','--mint':'#1D4136','--mint-s':'#8FDDB8','--peach':'#4A3329','--peach-s':'#F2AE93','--lav':'#33305A','--lav-s':'#BBA8F0','--butter':'#453D22','--butter-s':'#EAD37E','--rose':'#472A31','--rose-s':'#F0A0B0','--ok':'#8FDDB8','--warn':'#EAD37E','--bad':'#F0A0B0'};
+ let c='';for(const k in KT){const T=KT[k],tn=Object.entries(T.dark?Dk:L).map(([a,b])=>a+':'+b).join(';');
+  c+=`html.kn[data-kt="${k}"]{--bg:${T.bg};--card:${T.card};--ink:${T.ink};--soft:${T.soft};--line:${T.line};--accent:${T.ac};--accent-ink:${T.dark?'#0E1230':'#FFFFFF'};${tn};--shadow:0 6px 20px rgba(0,0,0,${T.dark?.4:.1});color-scheme:${T.dark?'dark':'light'}}html.kn[data-kt="${k}"] body{background:${T.g}}`}
+ const el=document.createElement('style');el.id='kcss';el.textContent=c;document.head.appendChild(el)}
+const kReduce=()=>{try{return window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}};
+function kidFx(key){let f=document.getElementById('kfx');
+ if(!key){if(f)f.remove();return}
+ if(!f){f=document.createElement('div');f.id='kfx';f.setAttribute('aria-hidden','true');document.body.appendChild(f)}
+ f.innerHTML='';if(kReduce()||lsGet('an_kfx','1')==='0')return;
+ const T=KT[key];for(let i=0;i<18;i++){const s=document.createElement('i');s.textContent=T.p[i%T.p.length];
+  s.style.cssText=`left:${Math.round(Math.random()*96)}%;font-size:${14+Math.round(Math.random()*16)}px;animation-name:${T.up?'krise':'kfall'};animation-duration:${(7+Math.random()*8).toFixed(1)}s;animation-delay:-${(Math.random()*12).toFixed(1)}s;--dx:${Math.round((Math.random()-.5)*90)}px`;f.appendChild(s)}}
+/* music: tiny synthesised tunes made for this app, started only by a tap */
+let KA=null,kGest=0;
+['click','touchend'].forEach(ev=>document.addEventListener(ev,()=>{kGest=Date.now()},true));
+function kSnd(key,full){try{
+ if(lsGet('an_ksnd','1')==='0'||document.hidden)return;const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+ if(!KA)KA=new AC();const t0=Date.now();
+ const go=()=>{if(Date.now()-t0>1500||KA.state!=='running')return;
+  const T=KT[key]||KT.ice,[root,ms,wave,notes]=T.m,n=full?notes.length:8,step=ms/1000,t=KA.currentTime+0.05;
+  if(kSnd.g){try{kSnd.g.gain.cancelScheduledValues(KA.currentTime);kSnd.g.gain.setTargetAtTime(0,KA.currentTime,.05)}catch(e){}}
+  const m=KA.createGain();m.gain.value=full?0.16:0.13;const f=KA.createBiquadFilter();f.type='lowpass';f.frequency.value=wave==='sine'?6000:2200;m.connect(f);f.connect(KA.destination);kSnd.g=m;
+  const hz=x=>440*Math.pow(2,(x-69)/12);
+  const tone=(fr,st,dur,vol)=>{const o=KA.createOscillator(),g=KA.createGain();o.type=wave;o.frequency.value=fr;g.gain.setValueAtTime(0.0001,st);g.gain.exponentialRampToValueAtTime(vol,st+.012);g.gain.exponentialRampToValueAtTime(0.0001,st+dur);o.connect(g);g.connect(m);o.start(st);o.stop(st+dur+.05);
+   if(wave==='sine'){const b=KA.createOscillator(),bg=KA.createGain();b.type='sine';b.frequency.value=fr*2;bg.gain.setValueAtTime(0.0001,st);bg.gain.exponentialRampToValueAtTime(vol*.35,st+.01);bg.gain.exponentialRampToValueAtTime(0.0001,st+dur*.6);b.connect(bg);bg.connect(m);b.start(st);b.stop(st+dur)}};
+  for(let i=0;i<n;i++)tone(hz(root+notes[i]),t+i*step,step*1.8,.5);
+  if(full){const e=t+n*step;[0,4,7].forEach(x=>tone(hz(root+x),e,1.0,.35))}
+  else{tone(hz(root),t+n*step,.7,.35)}};
+ if(KA.state==='running')go();else KA.resume().then(go).catch(()=>{})}catch(e){}}
+function kidApply(){try{const r=document.documentElement,on=kidOn();
+ if(!on){if(r.classList.contains('kn')){r.classList.remove('kn');r.removeAttribute('data-kt');kidFx(null);if(window.applyPal)window.applyPal(curPal())}kidApply.k=null;return}
+ kidCss();const key=kidKey(),T=KT[key];
+ if(kidApply.k===key&&r.classList.contains('kn'))return;
+ const first=kidApply.k==null;kidApply.k=key;
+ r.classList.add('kn');r.setAttribute('data-kt',key);r.setAttribute('data-theme',T.dark?'dark':'light');
+ const m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',T.bar);
+ kidFx(key);
+ if(!first&&Date.now()-kGest<1500)kSnd(key,false)}catch(e){}}
+function kidCard(d,its,dn){try{if(!kidOn())return'';const T=KT[kidKey()],tot=its.length,done=its.filter(i=>dn.has(i.id)).length,st=tot?Math.round(5*done/tot):0;
+ return `<div class="kcard"><div class="kbn"><span class="ke" aria-hidden="true">${T.e}</span><div><b>${esc(T.n)}</b><small>${esc(T.t)}</small></div></div><div class="kms"><b>Kiana’s mission</b>${esc(KMIS[d.n]||'Have a happy day')}</div><div class="kst" aria-label="${done} of ${tot} done"><span>${'⭐'.repeat(st)}${'☆'.repeat(5-st)}</span><small>${done} of ${tot} done</small></div></div>`}catch(e){return''}}
+
 /* sunrise and sunset (offline maths), IST */
 function sunTimes(lat,lon,y,mo,d){const J=Date.UTC(y,mo,d,12)/864e5+2440587.5,n=Math.ceil(J-2451545+0.0008),rad=Math.PI/180;
  const Js=n-lon/360,M=(357.5291+0.98560028*Js)%360,C=1.9148*Math.sin(M*rad)+0.02*Math.sin(2*M*rad)+0.0003*Math.sin(3*M*rad),L=(M+C+180+102.9372)%360;
@@ -457,7 +532,7 @@ function paintLeave(){try{const el=$('leavec');if(!el)return;const c=clock(),its
  el.innerHTML=`<div class="leave ${tone}"><b>Be ready in ${t}</b><span>${nx.t} · ${esc(nx.x.slice(0,90))}</span></div>`}catch(e){}}
 /* emergency card */
 /* flight check-in: IndiGo web check-in link, window timer and DigiYatra steps */
-const BUILD='build 9 Oct 2026 C';
+const BUILD='build 9 Oct 2026 D';
 const IGO_URL='https://www.goindigo.in/web-check-in.html',DY_URL='https://apps.apple.com/in/app/digi-yatra/id6479873321';
 function flightsAll(){const out=[];try{for(const d of DAYS){const its=itemsFor(d.n);const hmn=t=>{const m=/^(\d{1,2}):(\d{2})/.exec(t||'');return m?(+m[1])*60+(+m[2]):-1};
  for(const it of its){const m=/IndiGo\s+(6E\s*\d+)\s+departs\s+([^,(]+)/i.exec(it.x||'');const t=/^(\d{1,2}):(\d{2})/.exec(it.t||'');if(!m||!t)continue;
@@ -619,9 +694,12 @@ document.addEventListener('click',e=>{
  else if(a==='udel')udDelete(b.dataset.id,b);
  else if(a==='checkin')checkinSheet();
  else if(a==='pack')packSheet();
- else if(a==='kidsw'){lsSet('an_kiana',b.checked?'1':'0');render('keep')}
+ else if(a==='kidsw'){lsSet('an_kiana',b.checked?'1':'0');render('keep');if(kidOn())kSnd(kidKey(),true)}
+ else if(a==='ksnd'){lsSet('an_ksnd',b.checked?'1':'0');if(b.checked)kSnd(kidKey(),false)}
+ else if(a==='kfx'){lsSet('an_kfx',b.checked?'1':'0');kidFx(kidOn()?kidKey():null)}
+ else if(a==='kplay'){kSnd(kidKey(),true)}
  else if(a==='fit'){const v=b.dataset.v;try{localStorage.setItem('an_fit',v)}catch(e){}if(window.fitApp)window.fitApp();document.querySelectorAll('[data-a="fit"]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===v)))}
- else if(a==='kid'){lsSet('an_kiana',kidOn()?'0':'1');b.textContent='Child mode: '+(kidOn()?'ON':'OFF');render('keep')}
+ else if(a==='kid'){lsSet('an_kiana',kidOn()?'0':'1');b.textContent='Kiana mode: '+(kidOn()?'ON':'OFF');render('keep')}
  else if(a==='savecfg'){const p=$('s-p').value.trim(),k=$('s-k').value.trim();if(p&&k){ST.cfg={projectId:p,apiKey:k};save();SYNC.denied=false;checkConn()}}
  else if(a==='check')checkConn();
  else if(a==='reload'){(async()=>{try{if(navigator.onLine===false){toast('You are offline. The app keeps working from this phone.');return}
