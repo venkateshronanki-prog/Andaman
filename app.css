@@ -355,3 +355,15 @@ label.pk{display:flex;flex-direction:row;align-items:flex-start;gap:12px;text-tr
 .kst{display:flex;align-items:center;justify-content:space-between;margin-top:8px;font-size:20px;letter-spacing:2px}.kst small{font-size:12px;letter-spacing:0;color:var(--soft)}
 .kfun{flex-basis:100%;margin-top:2px;padding:6px 10px;border-radius:12px;background:var(--butter);color:var(--ink);font-size:13px;line-height:1.35}
 @media (prefers-reduced-motion:reduce){#kfx{display:none}}
+
+.mnote{flex-basis:100%;margin-top:2px;padding:6px 10px;border-radius:12px;font-size:13px;line-height:1.35;color:var(--ink)}
+.mnote.ok{background:var(--mint)}.mnote.care{background:var(--butter)}.mnote.skip{background:var(--rose)}
+.kms.mm{background:var(--rose)}.kms.mm b{color:var(--rose-s)}.kms ul{margin:4px 0 0;padding-left:18px;display:grid;gap:3px}
+.kmagic{border:2px solid transparent;background:linear-gradient(var(--card),var(--card)) padding-box,linear-gradient(135deg,#ffcf5a,#ff7ac6,#a07bff,#5ad1ff) border-box}
+.kbn button.ke{background:none;border:0;padding:0;font-size:38px;line-height:1;cursor:pointer}
+#kstar{position:fixed;top:14%;left:-12%;font-size:26px;z-index:3;pointer-events:none;opacity:0;animation:kshoot 12s ease-in infinite 3s;will-change:transform}
+@keyframes kshoot{0%{transform:translate3d(0,0,0) rotate(20deg);opacity:0}3%{opacity:1}11%{transform:translate3d(125vw,38vh,0) rotate(20deg);opacity:0}100%{transform:translate3d(125vw,38vh,0);opacity:0}}
+.kburst{position:fixed;z-index:80;pointer-events:none;width:0;height:0}
+.kburst i{position:absolute;left:0;top:0;font-style:normal;font-size:20px;animation:kb 1s ease-out forwards}
+@keyframes kb{0%{transform:translate(-50%,-50%) scale(.4);opacity:1}100%{transform:translate(calc(-50% + var(--bx)),calc(-50% + var(--by))) scale(1.1);opacity:0}}
+@media (prefers-reduced-motion:reduce){#kstar,.kburst{display:none}}

@@ -373,8 +373,12 @@ function settingsSheet(){const c=cfg();const fromFile=!!(window.FB&&window.FB.pr
  <div class="srow"><span>Stretch screen down</span><span id="v-fit">${fitVal()}</span></div><input class="ios" type="range" id="r-fit" min="0" max="70" step="1" value="${fitVal()}" style="--p:${100*fitVal()/70}%">
  <div class="srow" style="margin-top:6px"><span>Lift bar up</span><span id="v-lift">${lsGet('an_lift','0')}</span></div><input class="ios" type="range" id="r-lift" min="0" max="40" step="1" value="${lsGet('an_lift','0')}" style="--p:${100*lsGet('an_lift','0')/40}%">
  <button class="btn ghost" data-a="fitreset" style="width:100%;margin-top:8px">Reset to standard position</button><p class="route" style="margin:6px 0 0">Stretch fills a blank strip under the bar. Lift raises the bar if it is cut off. Reset puts both back to the standard position and keeps them there.</p></div>
-  <div class="swrow"><div><b>Kiana mode</b><p class="route" style="margin:2px 0 0">A fun theme for every day, falling stars, a short tune and playful notes for Kiana.</p></div><input class="sw" type="checkbox" switch data-a="kidsw" ${kidOn()?'checked':''} aria-label="Kiana mode"></div>
-  ${true?`<div class="swrow"><div><b>Kiana sounds</b><p class="route" style="margin:2px 0 0">A 2 to 3 second tune. Silent if the phone is on silent.</p></div><input class="sw" type="checkbox" switch data-a="ksnd" ${lsGet('an_ksnd','1')!=='0'?'checked':''} aria-label="Kiana sounds"></div><div class="swrow"><div><b>Falling effects</b><p class="route" style="margin:2px 0 0">Snow, stars and bubbles falling on screen.</p></div><input class="sw" type="checkbox" switch data-a="kfx" ${lsGet('an_kfx','1')!=='0'?'checked':''} aria-label="Falling effects"></div><button class="btn ghost" data-a="kplay" style="width:100%">Play today’s tune</button>`:''}
+  <div class="swrow"><div><b>Kiana mode</b><p class="route" style="margin:2px 0 0">A fun theme for every day, falling stars and playful notes for Kiana.</p></div><input class="sw" type="checkbox" switch data-a="kidsw" ${kidOn()?'checked':''} aria-label="Kiana mode"></div>
+  <div class="swrow"><div><b>Mother mode</b><p class="route" style="margin:2px 0 0">Soft baby themes, and eat, avoid and precaution notes for Kiana\u2019s mum on every activity.</p></div><input class="sw" type="checkbox" switch data-a="momsw" ${momOn()?'checked':''} aria-label="Mother mode"></div>
+  <p class="route" id="kcombo" style="margin:0" ${kidOn()&&momOn()?'':'hidden'}>Both modes are on: Family Magic ✨ is active.</p>
+  <div class="swrow"><div><b>Sounds</b><p class="route" style="margin:2px 0 0">A 2 to 3 second tune. Works with or without the modes. Silent if the phone is on silent.</p></div><input class="sw" type="checkbox" switch data-a="ksnd" ${sndOn()?'checked':''} aria-label="Sounds"></div>
+  <div class="swrow"><div><b>Falling effects</b><p class="route" style="margin:2px 0 0">Snow, stars, bubbles or flowers drifting on screen. Works with or without the modes.</p></div><input class="sw" type="checkbox" switch data-a="kfx" ${fxOn()?'checked':''} aria-label="Falling effects"></div>
+  <button class="btn ghost" data-a="kplay" style="width:100%">Play today\u2019s tune</button>
  <div><div class="eyebrow" style="margin-bottom:8px">Text size (this phone)</div><div class="fsz" role="group" aria-label="Text size">${[['s','Small','14px'],['m','Normal','17px'],['l','Large','20px'],['xl','Extra large','23px']].map(([k,l,s])=>`<button data-fs="${k}" aria-pressed="${k===curFs()}"><span style="font-size:${s};display:block">Aa</span><span style="font-size:11px">${l}</span></button>`).join('')}</div></div>
  <div><div class="eyebrow" style="margin-bottom:8px">Colour mode (this phone)</div><div class="pals" role="group" aria-label="Colour mode">${Object.keys(window.PALS).map(k=>`<button class="pal" data-pal="${k}" aria-pressed="${k===curPal()}"><i><b style="background:${window.PALS[k][1]}"></b><b style="background:${window.PALS[k][3]}"></b><b style="background:${window.PALS[k][2]}"></b></i>${window.PALS[k][0]}</button>`).join('')}</div></div>
  <div class="eyebrow" style="text-align:center;margin-top:10px;opacity:.6">${BUILD}</div>
@@ -406,20 +410,20 @@ function kidHint(x){const s=x.toLowerCase();
  if(/cab|drive|transfer/.test(s))return'Water and a small toy. Let her nap on the way';
  if(/light & sound|show|sunset/.test(s))return'Carry a jacket. Fine to leave early if she is tired';
  if(/wake up/.test(s))return'Let her sleep in the cab';return''}
-function xtra(it){try{const m=mapLink(placeFor(it.x)),on=kidOn(),k=on?kidHint(it.x):'',fun=on?kidFun(it):'';return(m||k||fun)?`<div class="xtra">${m}${k?`<span class="tag lav">${esc(KN())}: ${esc(k)}</span>`:''}${fun?`<span class="kfun">${esc(fun)}</span>`:''}</div>`:''}catch(e){return''}}
+function xtra(it){try{const m=mapLink(placeFor(it.x)),kon=kidOn(),mon=momOn(),k=kon?kidHint(it.x):'',fun=kon?kidFun(it):'',mn=mon?momNote(it):null;return(m||k||fun||mn)?`<div class="xtra">${m}${k?`<span class="tag lav">${esc(KN())}: ${esc(k)}</span>`:''}${fun?`<span class="kfun">${esc(fun)}</span>`:''}${mn?`<span class="mnote ${mn[0]}">${{ok:'✅',care:'⚠️',skip:'🚫'}[mn[0]]} ${esc(mn[1])}</span>`:''}</div>`:''}catch(e){return''}}
 /* ================= Kiana mode: themes, falling effects, music, fun notes ================= */
 const KT={
- ice:{n:'Ice Kingdom',e:'❄️',t:'Snow, sparkle and a very cool day',p:['❄','❅','❆','✨','❄','❆'],bg:'#EAF5FF',g:'linear-gradient(180deg,#D6EAFF 0,#EEF7FF 40%,#EAF5FF 100%)',card:'#FFFFFF',ink:'#17304D',soft:'#51698A',line:'#CCE0F4',ac:'#3C86D6',bar:'#1D3F6B',m:[79,240,'sine',[0,4,7,12,9,7,4,7,9,12,16,12]]},
+ ice:{n:'Ice Kingdom',e:'❄️',t:'Snow, sparkle and a very cool day',p:['❄','❅','❆','✨','❄','❆'],bg:'#EAF5FF',g:'linear-gradient(180deg,#D6EAFF 0,#EEF7FF 40%,#EAF5FF 100%)',card:'#FFFFFF',ink:'#17304D',soft:'#51698A',line:'#CCE0F4',ac:'#3372B6',bar:'#1D3F6B',m:[79,240,'sine',[0,4,7,12,9,7,4,7,9,12,16,12]]},
  pups:{n:'Rescue Pups',e:'🐶',t:'Ready for a rescue mission, team',p:['🐾','🦴','⭐','🐾','🚒'],bg:'#FFF8E3',g:'linear-gradient(180deg,#FFEFB8 0,#FFF8E3 40%,#FFF8E3 100%)',card:'#FFFFFF',ink:'#1B3358',soft:'#5A6B86',line:'#F0E3B5',ac:'#1E6FD0',bar:'#14396B',m:[72,200,'triangle',[0,4,7,4,9,7,12,7,9,7,4,0]]},
  hero:{n:'Super Hero City',e:'🦸',t:'Capes on, super traveller',p:['⭐','⚡','💫','⭐','🌟'],bg:'#F1F4FF',g:'linear-gradient(180deg,#DCE3FF 0,#F1F4FF 40%,#F1F4FF 100%)',card:'#FFFFFF',ink:'#1D2550',soft:'#5B6490',line:'#D3D9F3',ac:'#D8333F',bar:'#232C66',m:[67,200,'sawtooth',[0,0,7,7,12,7,12,16,12,7,12,19]]},
- puddle:{n:'Puddle Pals',e:'🐷',t:'Jump in every muddy puddle',p:['💧','🐷','💧','🌧️','💦'],bg:'#FFF1F5',g:'linear-gradient(180deg,#FFD9E5 0,#FFF1F5 40%,#FFF1F5 100%)',card:'#FFFFFF',ink:'#4A2234',soft:'#8A5A6D',line:'#F6D5E0',ac:'#E04C7A',bar:'#6B2A44',m:[69,220,'triangle',[0,2,4,2,0,7,4,2,4,5,4,0]]},
+ puddle:{n:'Puddle Pals',e:'🐷',t:'Jump in every muddy puddle',p:['💧','🐷','💧','🌧️','💦'],bg:'#FFF1F5',g:'linear-gradient(180deg,#FFD9E5 0,#FFF1F5 40%,#FFF1F5 100%)',card:'#FFFFFF',ink:'#4A2234',soft:'#8A5A6D',line:'#F6D5E0',ac:'#C9446D',bar:'#6B2A44',m:[69,220,'triangle',[0,2,4,2,0,7,4,2,4,5,4,0]]},
  rainbow:{n:'Rainbow Sunset',e:'🦄',t:'Sparkles, rainbows and magic',p:['🦄','🌈','⭐','💖','✨'],bg:'#F6F0FF',g:'linear-gradient(180deg,#E8DAFF 0,#FFEAF4 45%,#F6F0FF 100%)',card:'#FFFFFF',ink:'#33224F',soft:'#6E5C8F',line:'#E3D8F6',ac:'#8E55D6',bar:'#44287A',m:[72,260,'sine',[0,2,4,7,9,12,9,7,4,2,4,0]]},
- reef:{n:'Mermaid Reef',e:'🧜‍♀️',t:'Bubbles, shells and friendly fish',p:['🫧','🐠','🐚','🫧','🐟'],up:1,bg:'#E6FAFA',g:'linear-gradient(0deg,#BDEEF0 0,#E6FAFA 45%,#E6FAFA 100%)',card:'#FFFFFF',ink:'#10404A',soft:'#4B7F88',line:'#C5E9EB',ac:'#13A3A8',bar:'#0B4D55',m:[70,280,'sine',[0,3,7,10,7,3,5,8,12,8,5,0]]},
- pirate:{n:'Pirate Cove',e:'🏴‍☠️',t:'Yo ho ho, treasure ahead',p:['⚓','💰','🦜','⭐','🗝️'],bg:'#FBF3E4',g:'linear-gradient(180deg,#F3DFB8 0,#FBF3E4 40%,#FBF3E4 100%)',card:'#FFFFFF',ink:'#3E2A14',soft:'#7C6444',line:'#EBDDBF',ac:'#B8601B',bar:'#5A3813',m:[62,230,'triangle',[0,3,7,3,0,-2,0,3,7,10,7,3]]},
- safari:{n:'Jungle Safari',e:'🦁',t:'Whispers in the jungle',p:['🍃','🦋','🌿','🐒','🍃'],bg:'#EFF9E8',g:'linear-gradient(180deg,#D5EFC2 0,#EFF9E8 40%,#EFF9E8 100%)',card:'#FFFFFF',ink:'#1F3D1B',soft:'#587A52',line:'#D3E9C6',ac:'#3E8E2F',bar:'#25521C',m:[65,210,'triangle',[0,4,7,9,7,4,0,2,4,7,4,0]]},
+ reef:{n:'Mermaid Reef',e:'🧜‍♀️',t:'Bubbles, shells and friendly fish',p:['🫧','🐠','🐚','🫧','🐟'],up:1,bg:'#E6FAFA',g:'linear-gradient(0deg,#BDEEF0 0,#E6FAFA 45%,#E6FAFA 100%)',card:'#FFFFFF',ink:'#10404A',soft:'#43727A',line:'#C5E9EB',ac:'#0E7C80',bar:'#0B4D55',m:[70,280,'sine',[0,3,7,10,7,3,5,8,12,8,5,0]]},
+ pirate:{n:'Pirate Cove',e:'🏴‍☠️',t:'Yo ho ho, treasure ahead',p:['⚓','💰','🦜','⭐','🗝️'],bg:'#FBF3E4',g:'linear-gradient(180deg,#F3DFB8 0,#FBF3E4 40%,#FBF3E4 100%)',card:'#FFFFFF',ink:'#3E2A14',soft:'#7C6444',line:'#EBDDBF',ac:'#AE5B19',bar:'#5A3813',m:[62,230,'triangle',[0,3,7,3,0,-2,0,3,7,10,7,3]]},
+ safari:{n:'Jungle Safari',e:'🦁',t:'Whispers in the jungle',p:['🍃','🦋','🌿','🐒','🍃'],bg:'#EFF9E8',g:'linear-gradient(180deg,#D5EFC2 0,#EFF9E8 40%,#EFF9E8 100%)',card:'#FFFFFF',ink:'#1F3D1B',soft:'#53734D',line:'#D3E9C6',ac:'#377F29',bar:'#25521C',m:[65,210,'triangle',[0,4,7,9,7,4,0,2,4,7,4,0]]},
  space:{n:'Space Explorers',e:'🚀',t:'Three, two, one, blast off',p:['⭐','🪐','✨','🚀','☄️','🌟'],dark:1,bg:'#0E1230',g:'linear-gradient(180deg,#0A0E28 0,#151B4A 60%,#0E1230 100%)',card:'#1A2150',ink:'#EAEEFF',soft:'#A9B3E6',line:'#2C3578',ac:'#7C8BFF',bar:'#0A0E28',m:[60,300,'sine',[0,7,12,14,12,7,19,14,12,7,5,0]]},
- dino:{n:'Dino Land',e:'🦖',t:'Stomp, roar and explore',p:['🦕','🥚','🌴','🦖','🌋','🍃'],bg:'#FFF4E5',g:'linear-gradient(180deg,#FFE0B8 0,#FFF4E5 40%,#FFF4E5 100%)',card:'#FFFFFF',ink:'#43280F',soft:'#85684A',line:'#F2DEC1',ac:'#D9731A',bar:'#5E3511',m:[55,230,'square',[0,0,5,0,7,5,0,0,5,7,10,7]]},
- cloud:{n:'Sky Express',e:'✈️',t:'Up in the clouds, heading home',p:['☁️','✈️','🎈','☁️','🌤️'],bg:'#E8F6FF',g:'linear-gradient(180deg,#BFE5FF 0,#E8F6FF 45%,#E8F6FF 100%)',card:'#FFFFFF',ink:'#13365A',soft:'#4E7195',line:'#C9E3F6',ac:'#1E8AE0',bar:'#12457A',m:[74,250,'sine',[0,4,7,11,7,4,2,5,9,12,9,4]]}};
+ dino:{n:'Dino Land',e:'🦖',t:'Stomp, roar and explore',p:['🦕','🥚','🌴','🦖','🌋','🍃'],bg:'#FFF4E5',g:'linear-gradient(180deg,#FFE0B8 0,#FFF4E5 40%,#FFF4E5 100%)',card:'#FFFFFF',ink:'#43280F',soft:'#85684A',line:'#F2DEC1',ac:'#AF5C13',bar:'#5E3511',m:[55,230,'square',[0,0,5,0,7,5,0,0,5,7,10,7]]},
+ cloud:{n:'Sky Express',e:'✈️',t:'Up in the clouds, heading home',p:['☁️','✈️','🎈','☁️','🌤️'],bg:'#E8F6FF',g:'linear-gradient(180deg,#BFE5FF 0,#E8F6FF 45%,#E8F6FF 100%)',card:'#FFFFFF',ink:'#13365A',soft:'#4E7195',line:'#C9E3F6',ac:'#1875BE',bar:'#12457A',m:[74,250,'sine',[0,4,7,11,7,4,2,5,9,12,9,4]]}};
 const KDAY={10:'ice',11:'pups',12:'hero',13:'puddle',14:'rainbow',15:'reef',16:'pirate',17:'safari',18:'space',19:'dino',20:'cloud'};
 const KMIS={10:'Spot 3 aeroplanes and wave goodbye to home',11:'Make the biggest splash and count 5 slides',12:'Be a super traveller: find the first palm tree you see',13:'Count the waves and spot a dolphin from the boat',14:'Collect 5 shells and watch the sun go to bed',15:'Count 10 colourful fish in the water',16:'Find a crab and give it a funny name',17:'Find a shell shaped like a heart',18:'Wake up early and say good morning to the sun',19:'Find the lighthouse and wave to the boats',20:'Spot a cloud that looks like an animal'};
 const KFUN={alarm:['Rise and shine, explorer! Today is an adventure day 🌞','Wake-up wiggle: stretch like a cat, then roar like a lion 🦁','Put on your explorer hat and shoes 🎒'],
@@ -437,48 +441,162 @@ const KFUN={alarm:['Rise and shine, explorer! Today is an adventure day 🌞','W
  pin:['Look around: what is the coolest thing you can see? 👀','Take a deep breath and smile for a photo 📸']};
 function kHash(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h)}
 function kidFun(it){try{const L=KFUN[kindOf(it.x)]||KFUN.pin;return L[kHash(String(it.id))%L.length]}catch(e){return''}}
-function kidKey(){const n=sel!=null?sel:clock().day;return KDAY[n]||'ice'}
+/* ---- Mother mode data ---- */
+const MT={
+ m_bunny:{n:'Baby Bunnies',e:'🐰',t:'Gentle steps, soft hops',p:['🐰','💗','🌸','👶','💗'],bg:'#FFF1F4',g:'linear-gradient(180deg,#FFD6E0 0,#FFF1F4 42%,#FFF1F4 100%)',card:'#FFFFFF',ink:'#4A2433',soft:'#85505F',line:'#F3CFDA',ac:'#B83A5A',bar:'#6B2438',m:[72,330,'sine',[0,4,7,4,2,4,7,12,9,7,4,2]]},
+ m_teddy:{n:'Teddy Clouds',e:'🧸',t:'Cuddles on a soft cloud',p:['🧸','☁️','⭐','👶','🍼'],bg:'#FFF6EC',g:'linear-gradient(180deg,#FFDDB8 0,#FFF6EC 42%,#FFF6EC 100%)',card:'#FFFFFF',ink:'#4B2F18',soft:'#84613F',line:'#EFDAC0',ac:'#A9561A',bar:'#5E3511',m:[67,360,'sine',[0,2,4,7,4,2,0,4,7,9,7,4]]},
+ m_duck:{n:'Little Ducklings',e:'🐥',t:'Splish splash, slow and sweet',p:['🐥','💧','🫧','🍼','🐥'],bg:'#FFFBE0',g:'linear-gradient(180deg,#FFF0A0 0,#FFFBE0 42%,#FFFBE0 100%)',card:'#FFFFFF',ink:'#483C0A',soft:'#7C6F2C',line:'#EFE5A8',ac:'#806400',bar:'#5A4700',m:[74,340,'triangle',[0,4,7,9,7,4,2,4,7,12,9,7]]},
+ m_whale:{n:'Baby Whale',e:'🐳',t:'Calm waves, safe journey',p:['🐳','🫧','💙','👶','🌊'],bg:'#E9F4FF',g:'linear-gradient(180deg,#C4E2FF 0,#E9F4FF 42%,#E9F4FF 100%)',card:'#FFFFFF',ink:'#14355A',soft:'#4B6C92',line:'#C6DDF3',ac:'#2169B8',bar:'#12457A',m:[65,380,'sine',[0,3,7,10,7,3,0,5,8,12,8,5]]},
+ m_blossom:{n:'Blossom Garden',e:'🌸',t:'Flowers for the little one',p:['🌸','🌷','💗','🦋','👶'],bg:'#FFF0F8',g:'linear-gradient(180deg,#FFD0E8 0,#FFF0F8 42%,#FFF0F8 100%)',card:'#FFFFFF',ink:'#4D1F40',soft:'#88547A',line:'#F2CDE3',ac:'#B02F7C',bar:'#6B2A58',m:[76,320,'sine',[0,2,4,7,9,7,4,2,4,7,4,0]]},
+ m_turtle:{n:'Baby Turtles',e:'🐢',t:'Slow and steady wins',p:['🐢','🫧','🐚','👶','💚'],bg:'#EAF9F0',g:'linear-gradient(180deg,#C2EDD5 0,#EAF9F0 42%,#EAF9F0 100%)',card:'#FFFFFF',ink:'#18412B',soft:'#4B765F',line:'#C5E6D3',ac:'#17754B',bar:'#0F4D32',m:[69,370,'sine',[0,4,7,4,0,2,4,7,9,7,4,2]]},
+ m_butterfly:{n:'Butterfly Meadow',e:'🦋',t:'Fluttering softly',p:['🦋','🌼','✨','👶','💜'],bg:'#F4EEFF',g:'linear-gradient(180deg,#DFD0FF 0,#F4EEFF 42%,#F4EEFF 100%)',card:'#FFFFFF',ink:'#2F2150',soft:'#65588C',line:'#DAD0F2',ac:'#6D41C0',bar:'#44287A',m:[71,330,'sine',[0,2,5,7,5,2,0,4,7,11,7,4]]},
+ m_lamb:{n:'Sleepy Lambs',e:'🐑',t:'Count the little lambs',p:['🐑','☁️','🌙','👶','⭐'],bg:'#F1F6FC',g:'linear-gradient(180deg,#D9E5F4 0,#F1F6FC 42%,#F1F6FC 100%)',card:'#FFFFFF',ink:'#22364D',soft:'#5C7089',line:'#D3DFEC',ac:'#3F69A3',bar:'#26405F',m:[64,390,'sine',[0,4,7,4,2,0,4,9,7,4,2,0]]},
+ m_moon:{n:'Moon and Stars',e:'🌙',t:'A lullaby sky',p:['🌙','⭐','✨','👶','💤'],dark:1,bg:'#14163A',g:'linear-gradient(180deg,#0E1030 0,#1D2150 60%,#14163A 100%)',card:'#1F2350',ink:'#EEF0FF',soft:'#B4B9E6',line:'#333A7C',ac:'#FFD66B',bar:'#0E1030',m:[60,400,'sine',[0,5,7,12,7,5,0,4,7,9,7,4]]},
+ m_sun:{n:'Sunflower Sunshine',e:'🌻',t:'Warm, happy and slow',p:['🌻','☀️','🐝','👶','💛'],bg:'#FFF8DA',g:'linear-gradient(180deg,#FFE88A 0,#FFF8DA 42%,#FFF8DA 100%)',card:'#FFFFFF',ink:'#453200',soft:'#7F6828',line:'#EFE0A0',ac:'#965A00',bar:'#5E3C00',m:[72,320,'triangle',[0,4,7,12,9,7,4,7,9,12,9,4]]},
+ m_stork:{n:'Little Traveller',e:'🍼',t:'Homeward with a happy heart',p:['🍼','👶','🎈','☁️','💗'],bg:'#F0F4FF',g:'linear-gradient(180deg,#D8E4FF 0,#FFE7F1 55%,#F0F4FF 100%)',card:'#FFFFFF',ink:'#2A2A57',soft:'#62629A',line:'#D9DBF4',ac:'#BE3F72',bar:'#3A3A78',m:[69,350,'sine',[0,4,7,9,12,9,7,4,5,7,4,0]]}};
+const MDAY={10:'m_bunny',11:'m_teddy',12:'m_duck',13:'m_whale',14:'m_blossom',15:'m_turtle',16:'m_butterfly',17:'m_lamb',18:'m_moon',19:'m_sun',20:'m_stork'};
+const MGRP={10:'khopoli',11:'mumbai',12:'pb',13:'hav',14:'hav',15:'hav',16:'hav',17:'neil',18:'pb',19:'pb',20:'pb'};
+const MCARE={10:['Very early start: rest in the cab and nap at the hotel if you can.','Skip the big rides. Enjoy gentle sit-down rides, shows and shade.'],
+ 11:['Water Park: shallow splash zone only, no slides and no wave pool.','Long drive: a break every 1 to 2 hours and the seat belt low under the belly.'],
+ 12:['Another very early start: nap on the flight and sip water.','Ross Island is optional. Skip it if you are tired or the sun is strong.'],
+ 13:['Ferry day: sit in the middle, sip water, and ask your doctor about motion tablets before you go.','Your husband carries all the bags.'],
+ 14:['Radhanagar: shade, sunscreen and knee-deep calm water only.','Skip the night kayak this time and rest.'],
+ 15:['Elephant Beach: the speedboat is bumpy, so ask your doctor, or enjoy the beach instead.','No sea walk, scuba, parasailing or jet ski.'],
+ 16:['Room change is easy: let the hotel move the bags.','Neil’s Cove: sit and enjoy the view, no swimming.'],
+ 17:['Ferry again: middle seat, water and a calm mind.','Natural Bridge has jagged rocks. Watch your step or skip it.'],
+ 18:['Sunrise at Sitapur is very early. Go only if you slept well.','Evening show: take a seat early and carry water.'],
+ 19:['North Bay boat: sit in the middle and choose the glass-bottom boat only.','Shopping: walk slowly and take rest breaks.'],
+ 20:['Flight home: aisle seat, walk every hour, sip water.','Tell your doctor about the trip at your next visit.']};
+const MEAT={common:['Hot, freshly cooked meals: dal, rice, roti, vegetables','Idli, dosa, upma or poha for breakfast','Fruit you peel yourself (banana, orange, apple)','Sealed pasteurised curd, lassi or milk','Sealed bottled or boiled water','Tender coconut water cut in front of you','Dry biscuits or crackers in your bag for queasy moments'],
+ sea:['Fish and prawns only if piping hot and fully cooked, in small portions','Fresh fish curry or grilled fish cooked through'],
+ city:['Hotel or restaurant food that is served hot']};
+const MAVD={common:['Raw or undercooked fish, shellfish, meat and eggs','Unpasteurised milk, soft raw cheese and fresh juice from stalls','Street food, chaat and pani puri','Cut fruit sold outside, and ice or drinks made with unknown water','Raw sprouts and uncooked salads','Alcohol, energy drinks and unknown herbal or home remedies','Raw or semi-ripe papaya (commonly advised to avoid)','More than one small cup of tea or coffee a day (keep caffeine under 200 mg)'],
+ sea:['Shark, swordfish, marlin, king mackerel and big reef fish such as barracuda','Raw oysters, crab, lobster and seafood that has sat out'],
+ city:['Roadside vada pav and pav bhaji stalls']};
+const MPRE=['Drink 2 to 3 litres of safe water through the day and sip often.','Rest when tired. Early starts are tiring, so nap in cabs, lounges and at the hotel.','Do not lift bags. Let your husband and the hotel staff carry the luggage.','Wear the seat belt with the lap strap under your belly, and ask for stops on long drives.','Avoid overheating: shade, a hat, light cotton clothes. No hot tubs, saunas or steam rooms.','Use mosquito repellent that is safe in pregnancy and wear long sleeves at dusk. Ask your doctor which one.','Do not take any medicine or tablet (including for motion sickness) unless your doctor has said yes.','Keep prenatal vitamins, prescriptions, your doctor’s number and antenatal records with you.','Clean your hands before eating. Carry sanitiser and ORS sachets.','Know where help is: Port Blair has the main hospital. Havelock and Neil have only small health centres.'];
+const MASK=['Is flying and ferry travel fine for you at this stage','Whether you should have a first scan before going to remote islands','Motion-sickness tablets, mosquito repellent and any malaria or dengue advice','Whether snorkelling in calm shallow water is okay for you','What to do about nausea and which vitamins to keep taking'];
+const MHELP=['Any vaginal bleeding or spotting','Strong tummy cramps or pain, or pain at the tip of the shoulder','Fainting, severe dizziness or a racing heart','Vomiting so much that you cannot keep water down','Fever, or a severe headache'];
+const MRULES=[
+ [/lights out|^bed\b|bed,|bed\./,'ok','Good: rest matters. Sleep on your side if comfortable and keep water by the bed.'],
+ [/book the cab|call the cab/,'ok','Ask for a clean AC car and a smooth driver. Mention that you need a gentle ride.'],
+ [/get tomorrow ready/,'ok','Also pack: prenatal vitamins, medicines, ORS, snacks, sanitiser and a hat. Keep your doctor\u2019s number and records on the phone.'],
+ [/packed breakfast|packed food/,'ok','Choose fresh, well-cooked, wrapped food and eat it within a few hours. Skip egg mayo and anything left out.'],
+ [/web check-in/,'ok','Choose an aisle seat if the app lets you.'],
+ [/counter closes|boarding closes|report at|at the .* counter/,'care','Arrive early so there is no rush. Keep tickets and IDs in hand and let your husband stand in the queue while you sit.'],
+ [/wake up|alarm/,'care',(it)=>it.t<'05:30'?'Very early start. Go to bed as early as you can the night before, drink a glass of water now, and nap in the cab or at the lounge.':'Start slowly. Water first, then a light bite if you feel queasy.'],
+ [/kayak|bioluminescen|mangrove/,'skip','A night paddle with late hours, mosquitoes and boarding in the dark. Best skipped this time. Rest and enjoy the evening.'],
+ [/scuba|sea.?walk|parasail|jet ski/,'skip','Not advised in pregnancy. Please skip.'],
+ [/theme park|rides/,'skip','Skip roller coasters, drops, spinning and jerky rides. Gentle sit-down rides, shows and walks with rest breaks are fine. Read each ride’s pregnancy warning sign.'],
+ [/water park|splash|wave pool|slide/,'skip','No water slides and no wave pool. Stay in the shallow splash area, move slowly, wear grippy footwear on wet floors and rest often.'],
+ [/speedboat/,'care','Speedboats are bumpy. Ask your doctor first. If the sea is choppy, skip it and enjoy the beach with the family.'],
+ [/glass-bottom|coral/,'ok','A good choice: you see the coral without getting in the water. Sit steady and hold the rail.'],
+ [/snorkel/,'care','Ask your doctor first. If yes: calm, shallow water only, float gently, no diving down and no strong swimming.'],
+ [/ferry|makruzz|nautika|boat/,'care','Sit in the middle of the boat near the exit, hold rails on the steps, sip water. Ask your doctor about motion tablets before the trip, not on the day.'],
+ [/bag drop|security|gate|check-in and bag|terminal|airport/,'care','Walk slowly, use lifts and trolleys, ask staff for help at security. Your husband handles all bags.'],
+ [/departs|boarding|flight|6e /,'care','Flying is usually fine in early pregnancy but confirm with your doctor. Aisle seat, belt low under the belly, walk every hour, sip water, keep antenatal records handy.'],
+ [/land at|arrive|landed/,'ok','Walk slowly, drink water, and rest as soon as you reach the hotel.'],
+ [/expressway|khopoli|cab|drive|transfer|pick-?up|leave for/,'care','Seat belt low under the belly. Ask for a break every 1 to 2 hours to walk and sip water. Sit in front if roads make you queasy.'],
+ [/get tomorrow ready/,'ok','Also pack: prenatal vitamins, medicines, ORS, snacks, sanitiser and a hat. Keep your doctor’s number and records on the phone.'],
+ [/sunset|sunrise/,'ok','A lovely quiet moment. Sit down, wear sunscreen and a hat, and keep your feet on safe ground.'],
+ [/natural bridge|ruins|ross island|trek|walk|kalapathar|rocks|neil.s cove/,'care','Uneven or slippery ground. Wear grippy shoes, go slowly, hold an arm, and skip it if you are tired or the ground is wet.'],
+ [/radhanagar|beach|swim|pool|sand|cove/,'care','Shade, sunscreen, a hat and water. Paddle in calm knee-deep water only, in the patrolled zone. Rest often and avoid overheating.'],
+ [/light & sound|show|cellular|museum|jail/,'care','Arrive early to get a seat, avoid long standing, carry water and mosquito repellent for the evening.'],
+ [/shopping|bazaar|market|park/,'care','Walk slowly, rest on benches, avoid crowds and do not eat from street stalls.'],
+ [/check in|check out|hotel|room|resort|front desk|bags|bell desk/,'ok','Ask the hotel to carry the bags and give you a room near the lift or on the ground floor.'],
+ [/pack/,'ok','Pack prenatal vitamins, prescriptions, antenatal records, ORS, snacks and sanitiser in your hand bag.'],
+ [/nap|rest|sleep|quiet|freshen/,'ok','Good: rest is important. Sleep on your side if comfortable and keep water by the bed.']];
+function momMeal(g){return g==='hav'||g==='neil'||g==='pb'?'Eat hot, freshly cooked food: dal, rice, roti, vegetables. Fish or prawns only if fully cooked, and skip shark, king mackerel, barracuda and raw shellfish. Sealed water only, no ice. Skip cut fruit and street snacks.':'Eat hot, freshly cooked food: idli, dosa, dal, rice, roti. Skip street food, chaat, cut fruit, ice and raw salads. Packaged pasteurised curd and fruit you peel yourself are good. One small tea or coffee at most.'}
+function momNote(it){try{const d=sel!=null?sel:clock().day,s=(it.x||'').toLowerCase();
+ if(/breakfast|lunch|dinner|snack|tea\b|meal|food coupon|ice cream|cafe/.test(s)&&!/ask .*packed|packed breakfast/.test(s))return['ok',momMeal(MGRP[d]||'pb')];
+ for(const[r,l,t]of MRULES)if(r.test(s))return[l,typeof t==='function'?t(it):t];
+ return['ok','Go at your pace, sit when tired and keep water handy.']}catch(e){return null}}
+const MSIS={10:'Be mummy’s helper: carry her water bottle and find her a nice seat',11:'Hold mummy’s hand at the splash zone and say slow and steady',12:'Remind mummy to sip water every time the plane goes ding',13:'Be the captain’s helper: tell mummy when it is time for water and a rest',14:'Collect 3 shells for the baby’s treasure box',15:'Teach the baby the names of 5 fish',16:'Find a heart-shaped shell for mummy',17:'Draw a sand picture for the baby',18:'Whisper good morning to the sun for mummy and the baby',19:'Pick a tiny souvenir for the baby',20:'Tell the clouds we are bringing home a brand new adventure'};
+const MAGIC={n:'Family Magic',e:'✨',t:'Kiana and her baby sibling, one magical journey',bg:'#FBF3FF',g:'linear-gradient(180deg,#EBD9FF 0,#FFEAF5 38%,#FFF6DD 100%)',card:'#FFFFFF',ink:'#2B1B45',soft:'#665583',line:'#E5D5F4',ac:'#7B2FC0',bar:'#3A1F66',m:[72,150,'sine',[0,4,7,12,16,19,24,19,16,12,7,4]]};
+const TH=Object.assign({},KT,MT,{magic:MAGIC});
+
+/* ---- state: modes, sounds, effects ---- */
+const momOn=()=>lsGet('an_mom','0')==='1';
+const anyMode=()=>kidOn()||momOn();
+const flagOn=(k)=>{const v=lsGet(k,null);return v===null?anyMode():v==='1'};
+const sndOn=()=>flagOn('an_ksnd'),fxOn=()=>flagOn('an_kfx');
+function kDay(){return sel!=null?sel:clock().day}
+function kidKey(){return KDAY[kDay()]||'ice'}
+function themeInfo(){const d=kDay(),kk=KDAY[d]||'ice',mk=MDAY[d]||'m_bunny';
+ if(kidOn()&&momOn())return{attr:'magic',pk:'magic',kk,mk};
+ if(kidOn())return{attr:kk,pk:kk,kk,mk};
+ if(momOn())return{attr:mk,pk:mk,kk,mk};
+ if(fxOn()||sndOn())return{attr:null,pk:kk,kk,mk};
+ return{attr:null,pk:null,kk,mk}}
 function kidCss(){if(document.getElementById('kcss'))return;
  const L={'--sky':'#DCEFF8','--sky-s':'#2F6F9E','--mint':'#D8F1E4','--mint-s':'#2A7A58','--peach':'#FFE4D6','--peach-s':'#B0573A','--lav':'#E9E2F8','--lav-s':'#6A52A8','--butter':'#FFF3C9','--butter-s':'#85690F','--rose':'#FADCE0','--rose-s':'#A5485A','--ok':'#2A7A58','--warn':'#85690F','--bad':'#A5485A'};
  const Dk={'--sky':'#1F3A4D','--sky-s':'#9CCBEE','--mint':'#1D4136','--mint-s':'#8FDDB8','--peach':'#4A3329','--peach-s':'#F2AE93','--lav':'#33305A','--lav-s':'#BBA8F0','--butter':'#453D22','--butter-s':'#EAD37E','--rose':'#472A31','--rose-s':'#F0A0B0','--ok':'#8FDDB8','--warn':'#EAD37E','--bad':'#F0A0B0'};
- let c='';for(const k in KT){const T=KT[k],tn=Object.entries(T.dark?Dk:L).map(([a,b])=>a+':'+b).join(';');
-  c+=`html.kn[data-kt="${k}"]{--bg:${T.bg};--card:${T.card};--ink:${T.ink};--soft:${T.soft};--line:${T.line};--accent:${T.ac};--accent-ink:${T.dark?'#0E1230':'#FFFFFF'};${tn};--shadow:0 6px 20px rgba(0,0,0,${T.dark?.4:.1});color-scheme:${T.dark?'dark':'light'}}html.kn[data-kt="${k}"] body{background:${T.g}}`}
+ let c='';for(const k in TH){const T=TH[k],tn=Object.entries(T.dark?Dk:L).map(([a,b])=>a+':'+b).join(';');
+  c+=`html.kn[data-kt="${k}"]{--bg:${T.bg};--card:${T.card};--ink:${T.ink};--soft:${T.soft};--line:${T.line};--accent:${T.ac};--accent-ink:${T.dark?'#14163A':'#FFFFFF'};${tn};--shadow:0 6px 20px rgba(0,0,0,${T.dark?.4:.1});color-scheme:${T.dark?'dark':'light'}}html.kn[data-kt="${k}"] body{background:${T.g}}`}
  const el=document.createElement('style');el.id='kcss';el.textContent=c;document.head.appendChild(el)}
 const kReduce=()=>{try{return window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}};
-function kidFx(key){let f=document.getElementById('kfx');
- if(!key){if(f)f.remove();return}
+function partsFor(info){if(info.pk==='magic'){const a=KT[info.kk].p,b=MT[info.mk].p;return[a[0],b[0],'✨',a[1],b[1],'⭐',a[2],b[3],'💫','💖']}return TH[info.pk].p}
+function kidFx(info){let f=document.getElementById('kfx');
+ if(!info||!info.pk||!fxOn()){if(f)f.remove();kStar(false);return}
+ if(kReduce()){if(f)f.remove();return}
  if(!f){f=document.createElement('div');f.id='kfx';f.setAttribute('aria-hidden','true');document.body.appendChild(f)}
- f.innerHTML='';if(kReduce()||lsGet('an_kfx','1')==='0')return;
- const T=KT[key];for(let i=0;i<18;i++){const s=document.createElement('i');s.textContent=T.p[i%T.p.length];
-  s.style.cssText=`left:${Math.round(Math.random()*96)}%;font-size:${14+Math.round(Math.random()*16)}px;animation-name:${T.up?'krise':'kfall'};animation-duration:${(7+Math.random()*8).toFixed(1)}s;animation-delay:-${(Math.random()*12).toFixed(1)}s;--dx:${Math.round((Math.random()-.5)*90)}px`;f.appendChild(s)}}
+ f.innerHTML='';const P=partsFor(info),up=info.pk!=='magic'&&TH[info.pk].up,n=info.pk==='magic'?20:18;
+ for(let i=0;i<n;i++){const s=document.createElement('i');s.textContent=P[i%P.length];
+  s.style.cssText=`left:${Math.round(Math.random()*96)}%;font-size:${14+Math.round(Math.random()*16)}px;animation-name:${up?'krise':'kfall'};animation-duration:${(7+Math.random()*8).toFixed(1)}s;animation-delay:-${(Math.random()*12).toFixed(1)}s;--dx:${Math.round((Math.random()-.5)*90)}px`;f.appendChild(s)}
+ kStar(info.pk==='magic')}
+function kStar(on){let e=document.getElementById('kstar');if(!on||kReduce()){if(e)e.remove();return}if(!e){e=document.createElement('div');e.id='kstar';e.setAttribute('aria-hidden','true');e.textContent='🌠';document.body.appendChild(e)}}
+function kBurst(x,y){try{if(kReduce())return;const E=['✨','⭐','💖','🌟','💫','🎀'],f=document.createElement('div');f.className='kburst';f.setAttribute('aria-hidden','true');f.style.left=x+'px';f.style.top=y+'px';
+ for(let i=0;i<12;i++){const s=document.createElement('i'),a=i/12*Math.PI*2,r=60+Math.random()*50;s.textContent=E[i%E.length];s.style.setProperty('--bx',Math.round(Math.cos(a)*r)+'px');s.style.setProperty('--by',Math.round(Math.sin(a)*r)+'px');f.appendChild(s)}
+ document.body.appendChild(f);setTimeout(()=>f.remove(),1100)}catch(e){}}
 /* music: tiny synthesised tunes made for this app, started only by a tap */
 let KA=null,kGest=0;
 ['click','touchend'].forEach(ev=>document.addEventListener(ev,()=>{kGest=Date.now()},true));
-function kSnd(key,full){try{
- if(lsGet('an_ksnd','1')==='0'||document.hidden)return;const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+function kSnd(key,full,force){try{
+ if((!force&&!sndOn())||document.hidden||!TH[key])return;const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
  if(!KA)KA=new AC();const t0=Date.now();
  const go=()=>{if(Date.now()-t0>1500||KA.state!=='running')return;
-  const T=KT[key]||KT.ice,[root,ms,wave,notes]=T.m,n=full?notes.length:8,step=ms/1000,t=KA.currentTime+0.05;
+  const T=TH[key],[root,ms,wave,notes]=T.m,n=full?notes.length:8,step=ms/1000,t=KA.currentTime+0.05;
   if(kSnd.g){try{kSnd.g.gain.cancelScheduledValues(KA.currentTime);kSnd.g.gain.setTargetAtTime(0,KA.currentTime,.05)}catch(e){}}
   const m=KA.createGain();m.gain.value=full?0.16:0.13;const f=KA.createBiquadFilter();f.type='lowpass';f.frequency.value=wave==='sine'?6000:2200;m.connect(f);f.connect(KA.destination);kSnd.g=m;
   const hz=x=>440*Math.pow(2,(x-69)/12);
   const tone=(fr,st,dur,vol)=>{const o=KA.createOscillator(),g=KA.createGain();o.type=wave;o.frequency.value=fr;g.gain.setValueAtTime(0.0001,st);g.gain.exponentialRampToValueAtTime(vol,st+.012);g.gain.exponentialRampToValueAtTime(0.0001,st+dur);o.connect(g);g.connect(m);o.start(st);o.stop(st+dur+.05);
    if(wave==='sine'){const b=KA.createOscillator(),bg=KA.createGain();b.type='sine';b.frequency.value=fr*2;bg.gain.setValueAtTime(0.0001,st);bg.gain.exponentialRampToValueAtTime(vol*.35,st+.01);bg.gain.exponentialRampToValueAtTime(0.0001,st+dur*.6);b.connect(bg);bg.connect(m);b.start(st);b.stop(st+dur)}};
   for(let i=0;i<n;i++)tone(hz(root+notes[i]),t+i*step,step*1.8,.5);
-  if(full){const e=t+n*step;[0,4,7].forEach(x=>tone(hz(root+x),e,1.0,.35))}
+  if(full){const e=t+n*step;[0,4,7].forEach(x=>tone(hz(root+x),e,1.0,.35));if(key==='magic'){[19,24,28,31].forEach((x,i)=>tone(hz(root+x),e+.15+i*.12,.8,.22))}}
   else{tone(hz(root),t+n*step,.7,.35)}};
  if(KA.state==='running')go();else KA.resume().then(go).catch(()=>{})}catch(e){}}
-function kidApply(){try{const r=document.documentElement,on=kidOn();
- if(!on){if(r.classList.contains('kn')){r.classList.remove('kn');r.removeAttribute('data-kt');kidFx(null);if(window.applyPal)window.applyPal(curPal())}kidApply.k=null;return}
- kidCss();const key=kidKey(),T=KT[key];
- if(kidApply.k===key&&r.classList.contains('kn'))return;
- const first=kidApply.k==null;kidApply.k=key;
- r.classList.add('kn');r.setAttribute('data-kt',key);r.setAttribute('data-theme',T.dark?'dark':'light');
- const m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',T.bar);
- kidFx(key);
- if(!first&&Date.now()-kGest<1500)kSnd(key,false)}catch(e){}}
-function kidCard(d,its,dn){try{if(!kidOn())return'';const T=KT[kidKey()],tot=its.length,done=its.filter(i=>dn.has(i.id)).length,st=tot?Math.round(5*done/tot):0;
- return `<div class="kcard"><div class="kbn"><span class="ke" aria-hidden="true">${T.e}</span><div><b>${esc(T.n)}</b><small>${esc(T.t)}</small></div></div><div class="kms"><b>Kiana’s mission</b>${esc(KMIS[d.n]||'Have a happy day')}</div><div class="kst" aria-label="${done} of ${tot} done"><span>${'⭐'.repeat(st)}${'☆'.repeat(5-st)}</span><small>${done} of ${tot} done</small></div></div>`}catch(e){return''}}
+function kidApply(){try{const r=document.documentElement,I=themeInfo(),sig=I.attr||('amb:'+(I.pk||''));
+ if(kidApply.k===sig&&(!!I.attr)===r.classList.contains('kn'))return;
+ const first=kidApply.k===undefined;kidApply.k=sig;
+ if(!I.attr){if(r.classList.contains('kn')||r.classList.contains('km')||r.classList.contains('kc')){r.classList.remove('kn','km','kc');r.removeAttribute('data-kt');if(window.applyPal)window.applyPal(curPal())}}
+ else{kidCss();const T=TH[I.attr];r.classList.add('kn');r.classList.toggle('km',momOn());r.classList.toggle('kc',kidOn()&&momOn());r.setAttribute('data-kt',I.attr);r.setAttribute('data-theme',T.dark?'dark':'light');
+  const m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',T.bar)}
+ kidFx(I);
+ if(!first&&I.pk&&Date.now()-kGest<1500)kSnd(I.attr||I.pk,false)}catch(e){}}
+function refreshFx(){kidApply.k=undefined;kidApply()}
+function kidCard(d,its,dn){try{const kid=kidOn(),mom=momOn();if(!kid&&!mom)return'';const I=themeInfo(),T=TH[I.attr],tot=its.length,done=its.filter(i=>dn.has(i.id)).length,st=tot?Math.round(5*done/tot):0;
+ const stars=`<div class="kst" aria-label="${done} of ${tot} done"><span>${'⭐'.repeat(st)}${'☆'.repeat(5-st)}</span><small>${done} of ${tot} done</small></div>`;
+ const care=(MCARE[d.n]||[]).slice(0,2).map(x=>`<li>${esc(x)}</li>`).join('');
+ const btn=`<button class="btn ghost kgo" data-a="momguide" style="width:100%;margin-top:8px">Mum’s guide: eat, avoid, precautions</button>`;
+ if(kid&&mom)return `<div class="kcard kmagic"><div class="kbn"><button class="ke" data-a="kburst" aria-label="Sprinkle magic">${T.e}</button><div><b>${esc(T.n)}</b><small>${esc(T.t)}</small></div></div><div class="kms"><b>Big sister mission</b>${esc(MSIS[d.n]||'Be a gentle helper today')}</div><div class="kms mm"><b>Mum’s care today</b><ul>${care}</ul></div>${stars}${btn}</div>`;
+ if(mom)return `<div class="kcard"><div class="kbn"><span class="ke" aria-hidden="true">${T.e}</span><div><b>${esc(T.n)}</b><small>${esc(T.t)}</small></div></div><div class="kms mm"><b>Mum’s care today</b><ul>${care}</ul></div>${btn}</div>`;
+ return `<div class="kcard"><div class="kbn"><span class="ke" aria-hidden="true">${T.e}</span><div><b>${esc(T.n)}</b><small>${esc(T.t)}</small></div></div><div class="kms"><b>Kiana’s mission</b>${esc(KMIS[d.n]||'Have a happy day')}</div>${stars}</div>`}catch(e){return''}}
+function momSheet(n){try{n=n||kDay();const g=MGRP[n]||'pb',sea=g==='hav'||g==='neil'||g==='pb',d=dayOf(n),li=a=>a.map(x=>`<li>${esc(x)}</li>`).join('');
+ const eat=MEAT.common.concat(sea?MEAT.sea:MEAT.city),avd=MAVD.common.concat(sea?MAVD.sea:MAVD.city);
+ openLayer(`<h2>Mum’s guide${d?' · '+esc(dow(d)):''}</h2><p class="route" style="margin:0">General travel guidance for early pregnancy. It is not medical advice. Please confirm the plan with your doctor before you travel.</p>
+ <div class="eyebrow" style="margin-top:8px">Today</div><ul class="gtips">${li(MCARE[n]||[])}</ul>
+ <div class="eyebrow" style="margin-top:10px">Good to eat</div><ul class="gtips">${li(eat)}</ul>
+ <div class="eyebrow" style="margin-top:10px">Please avoid</div><ul class="gtips">${li(avd)}</ul>
+ <div class="eyebrow" style="margin-top:10px">Precautions on the move</div><ul class="gtips">${li(MPRE)}</ul>
+ <div class="eyebrow" style="margin-top:10px">Ask your doctor before you go</div><ul class="gtips">${li(MASK)}</ul>
+ <div class="eyebrow" style="margin-top:10px">Get help straight away if</div><ul class="gtips">${li(MHELP)}</ul><p class="route" style="margin:8px 0 0">India emergency number 112, ambulance 108. The SOS button in the app lists the nearest hospitals.</p>
+ <div class="row" style="margin-top:10px"><button class="btn plain" data-a="close">Close</button></div>`)}catch(e){}}
+function syncSw(){try{[['kidsw',kidOn()],['momsw',momOn()],['ksnd',sndOn()],['kfx',fxOn()]].forEach(([a,v])=>{const e=document.querySelector('[data-a="'+a+'"]');if(e&&e.type==='checkbox')e.checked=v});
+ const c=document.getElementById('kcombo');if(c)c.hidden=!(kidOn()&&momOn())}catch(e){}}
+function setMode(which,on){try{const before=anyMode();lsSet(which==='kid'?'an_kiana':'an_mom',on?'1':'0');
+ if(on&&!before){lsSet('an_ksnd','1');lsSet('an_kfx','1')}
+ if(!on&&!anyMode()){lsSet('an_ksnd','0');lsSet('an_kfx','0')}
+ kidApply.k=undefined;render('keep');syncSw();
+ if(on){const I=themeInfo();if(I.attr)kSnd(I.attr,true)}}catch(e){}}
 
 /* sunrise and sunset (offline maths), IST */
 function sunTimes(lat,lon,y,mo,d){const J=Date.UTC(y,mo,d,12)/864e5+2440587.5,n=Math.ceil(J-2451545+0.0008),rad=Math.PI/180;
@@ -532,7 +650,7 @@ function paintLeave(){try{const el=$('leavec');if(!el)return;const c=clock(),its
  el.innerHTML=`<div class="leave ${tone}"><b>Be ready in ${t}</b><span>${nx.t} · ${esc(nx.x.slice(0,90))}</span></div>`}catch(e){}}
 /* emergency card */
 /* flight check-in: IndiGo web check-in link, window timer and DigiYatra steps */
-const BUILD='build 9 Oct 2026 D';
+const BUILD='build 9 Oct 2026 E';
 const IGO_URL='https://www.goindigo.in/web-check-in.html',DY_URL='https://apps.apple.com/in/app/digi-yatra/id6479873321';
 function flightsAll(){const out=[];try{for(const d of DAYS){const its=itemsFor(d.n);const hmn=t=>{const m=/^(\d{1,2}):(\d{2})/.exec(t||'');return m?(+m[1])*60+(+m[2]):-1};
  for(const it of its){const m=/IndiGo\s+(6E\s*\d+)\s+departs\s+([^,(]+)/i.exec(it.x||'');const t=/^(\d{1,2}):(\d{2})/.exec(it.t||'');if(!m||!t)continue;
@@ -616,7 +734,7 @@ function guideSheet(){const P=[['Hello','Namaste','Namaskaram','Vanakkam'],['Tha
 const R=[['Hyderabad','Hyderabad'],['Mumbai','Mumbai'],['Port Blair','Port Blair'],['Havelock (Swaraj Dweep)','Havelock Island'],['Neil (Shaheed Dweep)','Neil Island']];
 openLayer(`<h2>Offline guide</h2><p class="route" style="margin:0">Everything on this page works with no internet. The Maps links open Google Maps, which needs a connection unless you downloaded that area there.</p>
 <div class="eyebrow" style="margin-top:6px">Tips for ${esc(KN())} and the trip</div>
-<ul class="gtips"><li>Andaman: carry enough cash. Cards and UPI can fail on the islands and ATMs are fewer at Havelock and Neil.</li><li>Mobile signal is patchy on the islands. Save tickets and documents here before you go; they open offline.</li><li>Ferries: carry photo ID for every traveller and reach the jetty early. The ticket shows the reporting time, so follow that.</li><li>Rough sea day: take motion-sickness tablets before boarding, not after.</li><li>Airport cabs: use the official prepaid counter or a booked cab and agree the fare before you start.</li><li>October is hot and humid: water, a hat and sunscreen for ${esc(KN())}, and a light jacket for cold ferry cabins and flights.</li><li>Tide times are estimates from a coarse sea model, not a tide table. Check locally before swimming, snorkelling or crossing at low tide.</li><li>Confirm timings on the day. Schedules, ferry slots and opening hours can change.</li></ul>
+<ul class="gtips"><li>Andaman: carry enough cash. Cards and UPI can fail on the islands and ATMs are fewer at Havelock and Neil.</li><li>Mobile signal is patchy on the islands. Save tickets and documents here before you go; they open offline.</li><li>Ferries: carry photo ID for every traveller and reach the jetty early. The ticket shows the reporting time, so follow that.</li><li>Rough sea day: take motion-sickness tablets before boarding, not after. Mum should ask her doctor before taking any.</li><li>Airport cabs: use the official prepaid counter or a booked cab and agree the fare before you start.</li><li>October is hot and humid: water, a hat and sunscreen for ${esc(KN())}, and a light jacket for cold ferry cabins and flights.</li><li>Tide times are estimates from a coarse sea model, not a tide table. Check locally before swimming, snorkelling or crossing at low tide.</li><li>Confirm timings on the day. Schedules, ferry slots and opening hours can change.</li></ul>
 <div class="eyebrow">Useful phrases</div><div class="gph"><div class="gh"><b>English</b><b>Hindi</b><b>Telugu</b><b>Tamil</b></div>${P.map(r=>`<div class="gr">${r.map(x=>`<span>${esc(x)}</span>`).join('')}</div>`).join('')}</div>
 <div class="eyebrow">Pharmacies and ATMs near you (needs Maps)</div><div class="sosg">${R.map(([l,q])=>`<a class="btn ghost" href="${mapUrl('24 hour pharmacy near '+q)}" target="_blank" rel="noopener noreferrer">Pharmacy, ${esc(l)}</a><a class="btn ghost" href="${mapUrl('ATM near '+q)}" target="_blank" rel="noopener noreferrer">ATM, ${esc(l)}</a>`).join('')}</div>
 <div class="row"><button class="btn plain" data-a="close">Close</button></div>`)}
@@ -694,10 +812,13 @@ document.addEventListener('click',e=>{
  else if(a==='udel')udDelete(b.dataset.id,b);
  else if(a==='checkin')checkinSheet();
  else if(a==='pack')packSheet();
- else if(a==='kidsw'){lsSet('an_kiana',b.checked?'1':'0');render('keep');if(kidOn())kSnd(kidKey(),true)}
- else if(a==='ksnd'){lsSet('an_ksnd',b.checked?'1':'0');if(b.checked)kSnd(kidKey(),false)}
- else if(a==='kfx'){lsSet('an_kfx',b.checked?'1':'0');kidFx(kidOn()?kidKey():null)}
- else if(a==='kplay'){kSnd(kidKey(),true)}
+ else if(a==='kidsw')setMode('kid',b.checked)
+ else if(a==='momsw')setMode('mom',b.checked)
+ else if(a==='ksnd'){lsSet('an_ksnd',b.checked?'1':'0');refreshFx();if(b.checked){const I=themeInfo(),k=I.attr||I.pk;if(k)kSnd(k,false)}}
+ else if(a==='kfx'){lsSet('an_kfx',b.checked?'1':'0');refreshFx()}
+ else if(a==='kplay'){const I=themeInfo();kSnd(I.attr||I.pk||kidKey(),true,true)}
+ else if(a==='momguide')momSheet()
+ else if(a==='kburst'){const r=b.getBoundingClientRect();kBurst(r.left+r.width/2,r.top+r.height/2);kSnd('magic',false)}
  else if(a==='fit'){const v=b.dataset.v;try{localStorage.setItem('an_fit',v)}catch(e){}if(window.fitApp)window.fitApp();document.querySelectorAll('[data-a="fit"]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===v)))}
  else if(a==='kid'){lsSet('an_kiana',kidOn()?'0':'1');b.textContent='Kiana mode: '+(kidOn()?'ON':'OFF');render('keep')}
  else if(a==='savecfg'){const p=$('s-p').value.trim(),k=$('s-k').value.trim();if(p&&k){ST.cfg={projectId:p,apiKey:k};save();SYNC.denied=false;checkConn()}}
