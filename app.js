@@ -347,6 +347,9 @@ async function docViewer(id){const d=DOCS.find(x=>x.id===id);if(!d)return;cleanu
 async function shareOriginal(id){const d=DOCS.find(x=>x.id===id);if(!d)return;try{const bytes=await loadDocBytes(d);const f=new File([bytes],d.src,{type:d.mime});
   if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:d.title})}
   else{const u=URL.createObjectURL(f);docUrls.push(u);const a=document.createElement('a');a.href=u;a.download=d.src;document.body.appendChild(a);a.click();a.remove()}}catch(e){if(!e||e.name!=='AbortError')toast('Could not share the original')}}
+function photoView(id,q,title){try{const u=getPh(id);if(!u){photoSheet(id,q);return}cleanupDoc();
+ $('layer').innerHTML=`<div class="viewer"><header><button class="btn ghost" data-a="closedoc" style="min-height:40px">Close</button><b>${esc(title||'Photo')}</b><button class="btn plain" data-a="phchange" data-id="${esc(id)}" data-q="${esc(q||'')}" style="min-height:40px">Change</button></header><div class="pg"><div class="vc" id="vc"></div><div class="hint">Tap the photo to zoom in or out. Change lets you replace or remove it.</div></div></div>`;
+ const im=new Image();im.alt='';im.dataset.z='1';im.style.cssText='width:100%;border-radius:8px';im.src=u;$('vc').appendChild(im);$('vc').dataset.ready='1'}catch(e){try{photoSheet(id,q)}catch(x){}}}
 function photoSheet(id,q){const has=!!getPh(id);
  openLayer(`<h2>${has?'Change photo':'Add photo'}</h2><p class="route" style="margin:0">Use your own photo, or find a real one on the web, save it to Photos, then choose it here.</p>
  <div class="ph-a"><button class="btn" data-a="choose" data-id="${esc(id)}">Choose or take a photo</button><a class="btn ghost" target="_blank" rel="noopener" href="https://www.google.com/search?tbm=isch&q=${encodeURIComponent(q+' Andaman')}">Search the web for a photo</a>${has?`<button class="btn bad" data-a="rmph" data-id="${esc(id)}">Remove photo</button>`:''}<button class="btn plain" data-a="close">Cancel</button></div>`)}
@@ -679,7 +682,7 @@ function paintLeave(){try{const el=$('leavec');if(!el)return;const c=clock(),its
  el.innerHTML=`<div class="leave ${tone}"><b>Be ready in ${t}</b><span>${nx.t} · ${esc(nx.x.slice(0,90))}</span></div>`}catch(e){}}
 /* emergency card */
 /* flight check-in: IndiGo web check-in link, window timer and DigiYatra steps */
-const BUILD='build 9 Oct 2026 G';
+const BUILD='build 10 Oct 2026 H';
 const IGO_URL='https://www.goindigo.in/web-check-in.html',DY_URL='https://apps.apple.com/in/app/digi-yatra/id6479873321';
 function flightsAll(){const out=[];try{for(const d of DAYS){const its=itemsFor(d.n);const hmn=t=>{const m=/^(\d{1,2}):(\d{2})/.exec(t||'');return m?(+m[1])*60+(+m[2]):-1};
  for(const it of its){const m=/IndiGo\s+(6E\s*\d+)\s+departs\s+([^,(]+)/i.exec(it.x||'');const t=/^(\d{1,2}):(\d{2})/.exec(it.t||'');if(!m||!t)continue;
@@ -801,6 +804,7 @@ function spendChart(ex,env,spent){try{if(!ex.length)return'';const by={};ex.forE
 document.addEventListener('click',e=>{
  try{
  const ta=e.target.closest('a[data-ta]');if(ta&&!navigator.onLine){e.preventDefault();toast('You are offline. Open this when you have signal.');return}
+ const cvr=e.target.closest&&e.target.closest('.cover .art img');if(cvr&&getPh('cover-'+sel)){photoView('cover-'+sel,(dayOf(sel)||{}).title||'Day');return}
  const z=e.target.closest('[data-z]');if(z&&!e.target.closest('button')){z.classList.toggle('z');return}
  if(e.target.id==='ovl'){if(!$('layer').querySelector('[data-conf]'))closeLayer();return}
  const b=e.target.closest('button,input,a');if(!b)return;const a=b.dataset.a;
@@ -816,13 +820,14 @@ document.addEventListener('click',e=>{
  if(b.dataset.del){const id=b.dataset.del;delete ST.syn.exp[id];queueDel('expenses/'+id);viewMoney();return}
  if(b.dataset.ud){udViewer(b.dataset.ud);return}
  if(b.dataset.doc){docViewer(b.dataset.doc);return}
- if(b.dataset.ph){photoSheet(b.dataset.ph,b.dataset.q||'Andaman');return}
+ if(b.dataset.ph){if(b.classList.contains('th')&&getPh(b.dataset.ph))photoView(b.dataset.ph,b.dataset.q||'Andaman');else photoSheet(b.dataset.ph,b.dataset.q||'Andaman');return}
  if(b.dataset.edit){itemSheet(b.dataset.edit);return}
  if(b.dataset.c){const v=b.checked,id=b.dataset.c;ST.syn.chk[id]=v;queueSet('checks/'+id,{v,at:Date.now()});const sec=b.closest('section');const all=sec.querySelectorAll('input');sec.querySelector('.prog').textContent=[...all].filter(i=>i.checked).length+'/'+all.length;return}
  if(a==='add')itemSheet(null);
  else if(a==='save')saveSheet(b.dataset.id||null);
  else if(a==='close')closeLayer();
  else if(a==='closedoc'){cleanupDoc();$('layer').innerHTML=''}
+ else if(a==='phchange'){cleanupDoc();$('layer').innerHTML='';photoSheet(b.dataset.id,b.dataset.q||'Andaman')}
  else if(a==='shareoriginal')shareOriginal(b.dataset.id);
  else if(a==='del')delItem(b.dataset.id);
  else if(a==='undo')restoreItem();
@@ -915,7 +920,7 @@ document.addEventListener('touchend',()=>{clearTimeout(tm);if(on){on=false;if(la
 document.addEventListener('touchcancel',()=>{clearTimeout(tm);on=false},{passive:true});
 ['gesturestart','gesturechange','gestureend'].forEach(g=>document.addEventListener(g,e=>{if(!(e.target.closest&&e.target.closest('.viewer')))e.preventDefault()}));
 document.addEventListener('touchmove',e=>{if(e.touches.length>1&&e.cancelable&&!(e.target.closest&&e.target.closest('.viewer')))e.preventDefault()},{passive:false});
-const pill=document.createElement('div');pill.className='offpill';pill.textContent='Offline. Changes are saved on this phone and sync later.';pill.hidden=navigator.onLine!==false;document.body.appendChild(pill);
+const pill=document.createElement('div');pill.className='offpill';pill.innerHTML='<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"/><path d="M7.5 7.6A5.5 5.5 0 0 0 6.5 18H17"/><path d="M9.3 5.6A6 6 0 0 1 17.8 10 4 4 0 0 1 21 14"/></svg><span>Offline</span>';pill.title='Offline. Changes are saved on this phone and sync later.';pill.setAttribute('role','status');pill.setAttribute('aria-label','Offline. Changes are saved on this phone and sync later.');pill.hidden=navigator.onLine!==false;document.body.appendChild(pill);
 const up=()=>{pill.hidden=navigator.onLine!==false};window.addEventListener('online',up);window.addEventListener('offline',up)})();
 try{lsSet('an_badge','');if(navigator.clearAppBadge)navigator.clearAppBadge()}catch(e){}
 window.__app={get book(){return BOOK},get flights(){return flightsAll()},loadExtras,get ST(){return ST},get healed(){return healed},heal,flush,poll,itemsFor,sunTimes,spendChart,get sync(){return SYNC},get trip(){return TRIP}};
