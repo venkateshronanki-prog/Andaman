@@ -47,7 +47,7 @@ function heal(){let n=0;
 let saveT=0;
 function save(now){if(!ST)return;clearTimeout(saveT);const go=()=>{IDB.set('kv','state',JSON.parse(JSON.stringify(ST)));try{localStorage.setItem('an-ui',JSON.stringify(ST.ui))}catch(e){}};if(now)go();else saveT=setTimeout(go,120)}
 window.addEventListener('pagehide',()=>save(true));
-document.addEventListener('visibilitychange',()=>{if(document.hidden){lsSet('an_seen',String(Date.now()));save(true)}else{poll();try{locFix();const c=clock();if(c.live&&!ST.ui.pv&&ST.ui.day&&ST.ui.day!==c.day&&tab==='today'&&!document.querySelector('.ov')){sel=c.day;ST.ui.day=c.day;render('saved')}}catch(e){}}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){lsSet('an_seen',String(Date.now()));save(true)}else{poll();try{wxFetch();tdFetch()}catch(e){}try{locFix();const c=clock();if(c.live&&!ST.ui.pv&&ST.ui.day&&ST.ui.day!==c.day&&tab==='today'&&!document.querySelector('.ov')){sel=c.day;ST.ui.day=c.day;render('saved')}}catch(e){}}});
 function getPh(id){return phMem[id]||null}
 async function setPh(id,img){if(img){phMem[id]=img;await IDB.set('ph',id,img)}else{delete phMem[id];await IDB.del('ph',id)}}
 
@@ -105,8 +105,8 @@ async function poll(){
   // photos (metadata only first)
   const phs=await listAll('photos',['at']);const pseen={};
   for(const d of phs){const id=idOf(d);pseen[id]=1;if(SYNC.phut[id]===d.updateTime||pendingPath('photos/'+id))continue;
-   try{const r=await api('GET','photos/'+id);if(r.status===200){const f=decFields(r.json.fields);const o=await unseal(f.ct);await setPh(id,o.img);SYNC.phut[id]=d.updateTime;ch=true}}catch(e){if(e&&e.code!=='precondition')throw e}}
-  for(const id in SYNC.phut)if(!pseen[id]&&!pendingPath('photos/'+id)){delete SYNC.phut[id];await setPh(id,null);ch=true}
+   try{const r=await api('GET','photos/'+id);if(r.status===200){const f=decFields(r.json.fields);const o=await unseal(f.ct);if(getPh(id)!==o.img)await setPh('hi-'+id,null);await setPh(id,o.img);SYNC.phut[id]=d.updateTime;ch=true}}catch(e){if(e&&e.code!=='precondition')throw e}}
+  for(const id in SYNC.phut)if(!pseen[id]&&!pendingPath('photos/'+id)){delete SYNC.phut[id];await setPh(id,null);await setPh('hi-'+id,null);ch=true}
   // expenses
   const exs=await listAll('expenses');const eseen={};
   for(const d of exs){const id=idOf(d);eseen[id]=1;if(pendingPath('expenses/'+id))continue;const f=decFields(d.fields);try{const o=await unseal(f.ct);if(o&&typeof o.a==='number'&&JSON.stringify(ST.syn.exp[id])!==JSON.stringify(o)){ST.syn.exp[id]=o;ch=true}}catch(e){}}
@@ -156,7 +156,7 @@ function detect(){let moved=false;ST.ob=ST.ob.filter(o=>{if(o.k!=='item')return 
  if(moved){save();showConflict()}}
 setInterval(()=>{if(ST&&ST.ob.length)flush()},20000);
 setInterval(()=>poll(),12000);
-window.addEventListener('online',()=>{retry=0;flush();poll();try{locFix()}catch(e){}});
+window.addEventListener('online',()=>{retry=0;flush();poll();try{locFix();wxFetch();tdFetch()}catch(e){}});
 const DEV=()=>{if(!ST.dev){ST.dev='d'+Math.random().toString(36).slice(2,8);save()}return ST.dev};
 
 /* ================= derived data ================= */
@@ -347,7 +347,7 @@ async function docViewer(id){const d=DOCS.find(x=>x.id===id);if(!d)return;cleanu
 async function shareOriginal(id){const d=DOCS.find(x=>x.id===id);if(!d)return;try{const bytes=await loadDocBytes(d);const f=new File([bytes],d.src,{type:d.mime});
   if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:d.title})}
   else{const u=URL.createObjectURL(f);docUrls.push(u);const a=document.createElement('a');a.href=u;a.download=d.src;document.body.appendChild(a);a.click();a.remove()}}catch(e){if(!e||e.name!=='AbortError')toast('Could not share the original')}}
-function photoView(id,q,title){try{const u=getPh(id);if(!u){photoSheet(id,q);return}cleanupDoc();
+function photoView(id,q,title){try{const u=getPh('hi-'+id)||getPh(id);if(!u){photoSheet(id,q);return}cleanupDoc();
  $('layer').innerHTML=`<div class="viewer"><header><button class="btn ghost" data-a="closedoc" style="min-height:40px">Close</button><b>${esc(title||'Photo')}</b><button class="btn plain" data-a="phchange" data-id="${esc(id)}" data-q="${esc(q||'')}" style="min-height:40px">Change</button></header><div class="pg"><div class="vc" id="vc"></div><div class="hint">Tap the photo to zoom in or out. Change lets you replace or remove it.</div></div></div>`;
  const im=new Image();im.alt='';im.dataset.z='1';im.style.cssText='width:100%;border-radius:8px';im.src=u;$('vc').appendChild(im);$('vc').dataset.ready='1'}catch(e){try{photoSheet(id,q)}catch(x){}}}
 function photoSheet(id,q){const has=!!getPh(id);
@@ -356,10 +356,11 @@ function photoSheet(id,q){const has=!!getPh(id);
 function pickPhoto(id){const pk=$('pick');pk.onchange=()=>{const f=pk.files&&pk.files[0];if(!f)return;const r=new FileReader();
  r.onerror=()=>toast('Could not read that photo');
  r.onload=()=>{const im=new Image();im.onerror=()=>toast('That file is not a photo');im.onload=async()=>{
-  let w=Math.min(720,im.width),q=.66,url;const cv=document.createElement('canvas');
-  for(let i=0;i<6;i++){cv.width=w;cv.height=Math.max(1,Math.round(im.height*w/im.width));cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);url=cv.toDataURL('image/jpeg',q);if(url.length<200000)break;w=Math.round(w*.8);q=Math.max(.4,q-.05)}
-  await setPh(id,url);queueSet('photos/'+id,{img:url,by:DEV(),at:Date.now()});closeLayer();render('keep');toast('Photo saved')};im.src=r.result};r.readAsDataURL(f);pk.value=''};pk.click()}
-async function rmPhoto(id){await setPh(id,null);delete SYNC.phut[id];queueDel('photos/'+id);closeLayer();render('keep');toast('Photo removed')}
+  const enc=(maxW,q0,limit,minQ)=>{let w=Math.min(maxW,im.width),q=q0,u;const cv=document.createElement('canvas');
+   for(let i=0;i<8;i++){cv.width=w;cv.height=Math.max(1,Math.round(im.height*w/im.width));const cx=cv.getContext('2d');cx.imageSmoothingQuality='high';cx.drawImage(im,0,0,cv.width,cv.height);u=cv.toDataURL('image/jpeg',q);if(u.length<limit)break;w=Math.round(w*.85);q=Math.max(minQ,q-.04)}return u};
+  const url=enc(1100,.76,330000,.5),hi=enc(2200,.88,1800000,.7);
+  await setPh(id,url);if(hi.length>url.length*1.15)await setPh('hi-'+id,hi);else await setPh('hi-'+id,null);queueSet('photos/'+id,{img:url,by:DEV(),at:Date.now()});closeLayer();render('keep');toast('Photo saved')};im.src=r.result};r.readAsDataURL(f);pk.value=''};pk.click()}
+async function rmPhoto(id){await setPh(id,null);await setPh('hi-'+id,null);delete SYNC.phut[id];queueDel('photos/'+id);closeLayer();render('keep');toast('Photo removed')}
 function curPal(){try{return localStorage.getItem('an_pal')||'lagoon'}catch(e){return'lagoon'}}
 function setPal(n){try{localStorage.setItem('an_pal',n)}catch(e){}if(window.applyPal)window.applyPal(n);document.querySelectorAll('.pal').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.pal===n)))}
 function screenInfo(){try{const p=document.createElement('div');p.style.cssText='position:fixed;top:0;visibility:hidden;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)';document.body.appendChild(p);const cs=getComputedStyle(p),t=cs.paddingTop,b=cs.paddingBottom;p.remove();return 'Screen '+screen.width+'x'+screen.height+' \u00b7 view '+innerWidth+'x'+innerHeight+' \u00b7 edges '+t+' / '+b+(document.documentElement.classList.contains('sa')?' \u00b7 fitted':'')}catch(e){return''}}
@@ -641,11 +642,14 @@ const dayLoc=n=>n<=11?[19.07,72.88]:[11.62,92.73];
 const WX={d:null,busy:false};
 try{const o=JSON.parse(lsGet('an_wx','null'));if(o&&o.mum&&o.pb)WX.d=o}catch(e){}
 function wxName(c){return c===0?'Clear':c<=2?'Mostly sunny':c===3?'Cloudy':c<=48?'Foggy':c<=57?'Drizzle':c<=67?'Rain':c<=77?'Snow':c<=82?'Showers':'Thunderstorms'}
-async function wxFetch(){if(WX.busy||!navigator.onLine)return;if(WX.d&&Date.now()-(WX.d.t||0)<3*3600e3)return;WX.busy=true;
- try{const g=async(lat,lon)=>{const ac=new AbortController(),to=setTimeout(()=>ac.abort(),8000);try{const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FKolkata&forecast_days=16',{signal:ac.signal});if(!r.ok)throw new Error('wx');return await r.json()}finally{clearTimeout(to)}};
-  const [m,p]=await Promise.all([g(19.07,72.88),g(11.62,92.73)]);
+const WX_TTL=15*60e3,TD_TTL=60*60e3,WX_PLACES={mum:[19.07,72.88],pb:[11.62,92.73],hav:[11.98,92.98],neil:[11.83,93.05]};
+const wxKey=n=>n<=11?'mum':(n>=13&&n<=16)?'hav':n===17?'neil':'pb';
+async function wxFetch(force){if(WX.busy||!navigator.onLine)return false;const age=WX.d?Date.now()-(WX.d.t||0):1e12;if(!force&&age<WX_TTL)return false;if(!force&&WX.fail&&Date.now()-WX.fail<120e3)return false;WX.busy=true;let ok=false;
+ try{const g=async(lat,lon)=>{const ac=new AbortController(),to=setTimeout(()=>ac.abort(),9000);try{const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current=temperature_2m,weather_code,wind_speed_10m,precipitation&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FKolkata&forecast_days=16',{signal:ac.signal,cache:'no-store'});if(!r.ok)throw new Error('wx');const j=await r.json();if(!j||!j.daily||!Array.isArray(j.daily.time))throw new Error('wx shape');return j}finally{clearTimeout(to)}};
+  const ks=Object.keys(WX_PLACES),res=await Promise.all(ks.map(k=>g(WX_PLACES[k][0],WX_PLACES[k][1]).catch(()=>null)));
   const pick=j=>{const o={};j.daily.time.forEach((dt,i)=>{o[dt]=[j.daily.weathercode[i],Math.round(j.daily.temperature_2m_max[i]),Math.round(j.daily.temperature_2m_min[i]),j.daily.precipitation_probability_max[i]]});return o};
-  WX.d={t:Date.now(),mum:pick(m),pb:pick(p)};lsSet('an_wx',JSON.stringify(WX.d));paintInfo()}catch(e){}WX.busy=false}
+  const d={t:Date.now(),cur:{}};ks.forEach((k,i)=>{const j=res[i];if(j){try{d[k]=pick(j)}catch(e){}if(j.current&&typeof j.current.temperature_2m==='number')d.cur[k]=[Math.round(j.current.temperature_2m),j.current.weather_code,Math.round(j.current.wind_speed_10m||0),j.current.precipitation||0]}else if(WX.d&&WX.d[k]){d[k]=WX.d[k];if(WX.d.cur&&WX.d.cur[k])d.cur[k]=WX.d.cur[k]}});
+  if(res.some(Boolean)&&d.mum&&d.pb){WX.d=d;lsSet('an_wx',JSON.stringify(d));WX.fail=0;ok=true;paintInfo()}else WX.fail=Date.now()}catch(e){WX.fail=Date.now()}WX.busy=false;return ok}
 /* tides: Open-Meteo marine sea level (about 8 km grid, so approximate). Hourly values are refined to the minute. */
 const TD={d:null,busy:false};
 try{const o=JSON.parse(lsGet('an_td','null'));if(o&&o.mum&&o.pb)TD.d=o}catch(e){}
@@ -656,11 +660,11 @@ function tideExtremes(times,vals){const raw=[];
  const f=[];for(const e of raw){const p=f[f.length-1];if(p&&p.k===e.k){if((e.k==='H'&&e.val>p.val)||(e.k==='L'&&e.val<p.val))f[f.length-1]=e}else f.push(e)}
  const out={};for(const e of f){const day=new Date(e.m*60000).toISOString().slice(0,10);const mm=((Math.round(e.m)%1440)+1440)%1440;(out[day]=out[day]||[]).push([e.k,mm,Math.round(e.val*100)/100])}
  return out}
-async function tdFetch(){if(TD.busy||!navigator.onLine)return;if(TD.d&&Date.now()-(TD.d.t||0)<3*3600e3)return;TD.busy=true;
- try{const g=async(lat,lon)=>{const ac=new AbortController(),to=setTimeout(()=>ac.abort(),8000);try{const r=await fetch('https://marine-api.open-meteo.com/v1/marine?latitude='+lat+'&longitude='+lon+'&hourly=sea_level_height_msl&timezone=Asia%2FKolkata&start_date=2026-10-09&end_date=2026-10-21',{signal:ac.signal});if(!r.ok)throw new Error('td');const j=await r.json();if(!j||!j.hourly||!Array.isArray(j.hourly.time)||!Array.isArray(j.hourly.sea_level_height_msl)||j.hourly.time.length<48)throw new Error('td shape');return tideExtremes(j.hourly.time,j.hourly.sea_level_height_msl)}finally{clearTimeout(to)}};
+async function tdFetch(force){if(TD.busy||!navigator.onLine)return false;if(!force&&TD.d&&Date.now()-(TD.d.t||0)<TD_TTL)return false;if(!force&&TD.fail&&Date.now()-TD.fail<120e3)return false;TD.busy=true;let ok=false;
+ try{const g=async(lat,lon)=>{const ac=new AbortController(),to=setTimeout(()=>ac.abort(),8000);try{const r=await fetch('https://marine-api.open-meteo.com/v1/marine?latitude='+lat+'&longitude='+lon+'&hourly=sea_level_height_msl&timezone=Asia%2FKolkata&start_date=2026-10-09&end_date=2026-10-21',{signal:ac.signal,cache:'no-store'});if(!r.ok)throw new Error('td');const j=await r.json();if(!j||!j.hourly||!Array.isArray(j.hourly.time)||!Array.isArray(j.hourly.sea_level_height_msl)||j.hourly.time.length<48)throw new Error('td shape');return tideExtremes(j.hourly.time,j.hourly.sea_level_height_msl)}finally{clearTimeout(to)}};
   const [m,p]=await Promise.all([g(19.07,72.88),g(11.62,92.73)]);
   if(!Object.keys(m).length||!Object.keys(p).length)throw new Error('td empty');
-  TD.d={t:Date.now(),mum:m,pb:p};lsSet('an_td',JSON.stringify(TD.d));paintInfo()}catch(e){}TD.busy=false}
+  TD.d={t:Date.now(),mum:m,pb:p};lsSet('an_td',JSON.stringify(TD.d));TD.fail=0;ok=true;paintInfo()}catch(e){TD.fail=Date.now()}TD.busy=false;return ok}
 function tidePills(n){try{const t=TD.d&&TD.d[n<=11?'mum':'pb']&&TD.d[n<=11?'mum':'pb']['2026-10-'+String(n).padStart(2,'0')];
  if(!t||!t.length)return '<span class="pill muted">Tides appear when online</span>';
  const H=t.filter(x=>x[0]==='H').map(x=>hm(x[1])),L=t.filter(x=>x[0]==='L').map(x=>hm(x[1]));
@@ -669,10 +673,12 @@ function tidePills(n){try{const t=TD.d&&TD.d[n<=11?'mum':'pb']&&TD.d[n<=11?'mum'
  return h}catch(e){return ''}}
 function paintInfo(){try{const el=$('dinfo');if(!el)return;const n=sel,loc=dayLoc(n),[sr,ss]=sunTimes(loc[0],loc[1],2026,9,n);
  let h=`<span class="pill butter">Sunrise ${hm(sr)}</span><span class="pill peach">Sunset ${hm(ss)}</span>`;
- const w=WX.d&&WX.d[n<=11?'mum':'pb']&&WX.d[n<=11?'mum':'pb']['2026-10-'+n];
+ const wk=wxKey(n),wd=WX.d&&(WX.d[wk]||WX.d[n<=11?'mum':'pb']),w=wd&&wd['2026-10-'+n],cu=WX.d&&WX.d.cur&&WX.d.cur[wk],cc=clock();
  if(!w)h+=`<span class="pill muted">Forecast appears when online</span>`;
+ if(w&&cu&&cc.live&&cc.day===n&&Date.now()-(WX.d.t||0)<6*3600e3)h+=`<span class="pill peach">Now ${cu[0]}°C ${wxName(cu[1])}${cu[2]?' · wind '+cu[2]+' km/h':''}</span>`;
  if(w)h+=`<span class="pill sky">${wxName(w[0])} ${w[2]}° to ${w[1]}°C${w[3]!=null?' · rain '+w[3]+'%':''}</span>`;
  h+=tidePills(n);
+ if(WX.d&&WX.d.t){const ts=WX.d.t,td=new Date(ts+19800000),same=td.getUTCDate()===ist().d&&td.getUTCMonth()===ist().mo;h+=`<button class="pill muted wxr" data-a="wxrefresh" aria-label="Refresh weather and tides">↻ Updated ${same?'':td.getUTCDate()+' Oct '}${hmI(ts)}</button>`}
  el.innerHTML=h||''}catch(e){}}
 /* leave-now countdown */
 const CRIT=/ferry|makruzz|nautika|flight|indigo|boarding|bag drop|jetty|check out|leave|cab (to|from)|light & sound|report at|at the .* counter/i;
@@ -682,7 +688,7 @@ function paintLeave(){try{const el=$('leavec');if(!el)return;const c=clock(),its
  el.innerHTML=`<div class="leave ${tone}"><b>Be ready in ${t}</b><span>${nx.t} · ${esc(nx.x.slice(0,90))}</span></div>`}catch(e){}}
 /* emergency card */
 /* flight check-in: IndiGo web check-in link, window timer and DigiYatra steps */
-const BUILD='build 10 Oct 2026 H';
+const BUILD='build 13 Oct 2026 I';
 const IGO_URL='https://www.goindigo.in/web-check-in.html',DY_URL='https://apps.apple.com/in/app/digi-yatra/id6479873321';
 function flightsAll(){const out=[];try{for(const d of DAYS){const its=itemsFor(d.n);const hmn=t=>{const m=/^(\d{1,2}):(\d{2})/.exec(t||'');return m?(+m[1])*60+(+m[2]):-1};
  for(const it of its){const m=/IndiGo\s+(6E\s*\d+)\s+departs\s+([^,(]+)/i.exec(it.x||'');const t=/^(\d{1,2}):(\d{2})/.exec(it.t||'');if(!m||!t)continue;
@@ -726,19 +732,53 @@ const udIds=()=>Object.keys(phMem).filter(k=>k.startsWith('ud-')).sort();
 const udName=u=>{const m=/^data:[^;,]+;name=([^;,]*)[;,]/.exec(u||'');try{return m?decodeURIComponent(m[1]):'Document'}catch(e){return 'Document'}};
 const udIsPdf=u=>/^data:application\/pdf/i.test(u||'');
 function myDocs(){try{const ids=udIds();return `<div class="card" style="margin:0 0 12px"><div class="eyebrow" style="margin-bottom:8px">My added documents</div>${ids.length?ids.map(i=>{const u=getPh(i);return `<button class="drow" data-ud="${esc(i)}"><span>${esc(udName(u))}</span><small>${udIsPdf(u)?'PDF':'Photo'}${udLocal().includes(i)?' · this phone only':''}</small></button>`}).join(''):'<p class="route" style="margin:0 0 8px">Add tickets, vouchers or IDs as a PDF or photo.</p>'}<button class="btn ghost" data-a="addud" style="width:100%;margin-top:8px">+ Add a document</button></div>`}catch(e){return ''}}
+const isGenericName=b=>{const r=String(b||'').toLowerCase().replace(/[\d\s._:()\-]+/g,' ').replace(/\bat\b/g,' ').trim();return r===''||/^(img|image|photo|pxl|dsc|dscn|screenshot|screen shot|scan|document|doc|whatsapp image|whatsapp|file|download|untitled|received|copy)( (am|pm|image|img))*$/.test(r)};
+function cleanName(t){return String(t||'').replace(/\s+/g,' ').replace(/[;,]/g,' ').replace(/[^\p{L}\p{N} .&()'’\-:#\/]/gu,'').trim().slice(0,60)}
+async function autoName(url,fname){
+ const base=cleanName(String(fname||'').replace(/\.[^.]+$/,'').replace(/[_]+/g,' '));
+ const stamp=()=>{const n=new Date(Date.now()+19800000);return n.getUTCDate()+' Oct '+String(n.getUTCHours()).padStart(2,'0')+':'+String(n.getUTCMinutes()).padStart(2,'0')};
+ if(udIsPdf(url)&&window.pdfjsLib){
+  try{const task=(async()=>{const b64=url.slice(url.indexOf(',')+1),bin=atob(b64),bytes=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+   pdfjsLib.GlobalWorkerOptions.workerSrc='pdf.worker.min.js';const pdf=await pdfjsLib.getDocument({data:bytes}).promise;let text='',title='';
+   try{const m=await pdf.getMetadata();title=cleanName(m&&m.info&&m.info.Title)}catch(e){}
+   const pg=await pdf.getPage(1),tc=await pg.getTextContent();text=tc.items.map(x=>x.str).join(' ').replace(/\s+/g,' ');
+   const T=text+' '+title,low=T.toLowerCase();let nm='';
+   const fl=/\b6E\s?(\d{2,4})\b/i.exec(T);
+   if(/makruzz/.test(low))nm='Makruzz ferry ticket';else if(/nautika/.test(low))nm='Nautika ferry ticket';else if(/green ocean/.test(low))nm='Green Ocean ferry ticket';
+   else if(fl||/indigo/.test(low))nm='IndiGo '+(/boarding/.test(low)?'boarding pass':'flight ticket')+(fl?' 6E '+fl[1]:'');
+   else if(/aadhaar|aadhar/.test(low))nm='Aadhaar card';else if(/passport/.test(low))nm='Passport';
+   else if(/insurance|policy/.test(low))nm='Travel insurance';else if(/cleartrip|booking\.com|agoda|makemytrip|goibibo/.test(low)&&/(hotel|resort|stay|check-in)/.test(low))nm='Hotel booking';
+   else if(/(ticket|e-ticket)/.test(low)&&/(imagica|imagicaa)/.test(low))nm='Imagicaa tickets';
+   if(nm)return nm;
+   if(title&&title.length>=4&&!/^(microsoft|untitled|document|print|pdf)/i.test(title)&&!/\.(docx?|pdf|html?)$/i.test(title))return title;
+   const lines=text.split(/\s{2,}|\. /).map(cleanName).filter(x=>x.length>=6&&/[A-Za-z]{3}/.test(x));
+   if(lines[0])return lines[0].slice(0,50);return''})();
+   const r=await Promise.race([task,new Promise(res=>setTimeout(()=>res(''),5000))]);if(r)return r}catch(e){}
+ }
+ if(base&&!isGenericName(base)&&base.length>=3)return base;
+ return (udIsPdf(url)?'PDF ':'Photo ')+stamp()}
+function setUdName(u,name){const n=encodeURIComponent(cleanName(name)||'Document');return u.replace(/^(data:[^;,]+)(;name=[^;,]*)?(;base64,)/,'$1;name='+n+'$3')}
+function renameSheet(id){const u=getPh(id);if(!u)return;
+ openLayer(`<h2>Rename document</h2><p class="route" style="margin:0">Use a name you will recognise at the counter, like “Makruzz ferry ticket”.</p><label class="fld"><input id="udn" type="text" maxlength="60" value="${esc(udName(u))}" autocomplete="off" autocapitalize="sentences" style="width:100%"></label><div class="row" style="margin-top:10px"><button class="btn plain" data-a="close">Cancel</button><button class="btn" data-a="udrenamego" data-id="${esc(id)}">Save name</button></div>`);
+ setTimeout(()=>{try{const e=$('udn');e.focus();e.select()}catch(x){}},120)}
+async function renameUdGo(id){const u=getPh(id),inp=$('udn');if(!u||!inp)return;const nm=cleanName(inp.value);if(!nm){toast('Type a name first');return}
+ const nu=setUdName(u,nm),hi=getPh('hi-'+id);await setPh(id,nu);if(hi)await setPh('hi-'+id,setUdName(hi,nm));
+ if(!udLocal().includes(id))queueSet('photos/'+id,{img:nu,by:DEV(),at:Date.now()});
+ closeLayer();render('keep');toast('Renamed');setTimeout(()=>{try{udViewer(id)}catch(e){}},50)}
 function pickUserDoc(){const pk=document.createElement('input');pk.type='file';pk.accept='application/pdf,image/*';pk.style.display='none';document.body.appendChild(pk);
  const done=()=>{setTimeout(()=>pk.remove(),500)};
  pk.onchange=()=>{const f=pk.files&&pk.files[0];if(!f){done();return}const isPdf=f.type==='application/pdf'||/\.pdf$/i.test(f.name);const nm=encodeURIComponent((f.name||'Document').replace(/\.[^.]+$/,'').slice(0,60));
-  const add=async(url,share)=>{const id='ud-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);url=url.replace(/^(data:[^;,]+)(;base64,)/,'$1;name='+nm+'$2');await setPh(id,url);if(share)queueSet('photos/'+id,{img:url,by:DEV(),at:Date.now()});else lsSet('an_udl',JSON.stringify(udLocal().concat([id])));render('keep');toast(share?'Document saved and shared':'Saved on this phone only (too big to share)')};
+  const add=async(url,share,hi)=>{const id='ud-'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);let nm2=nm;try{const an=await autoName(url,f.name||'');if(an)nm2=encodeURIComponent(an)}catch(e){}url=url.replace(/^(data:[^;,]+)(;base64,)/,'$1;name='+nm2+'$2');if(hi)await setPh('hi-'+id,hi.replace(/^(data:[^;,]+)(;base64,)/,'$1;name='+nm2+'$2'));await setPh(id,url);if(share)queueSet('photos/'+id,{img:url,by:DEV(),at:Date.now()});else lsSet('an_udl',JSON.stringify(udLocal().concat([id])));render('keep');toast((share?'Saved and shared as ':'Saved on this phone only as ')+'“'+decodeURIComponent(nm2)+'”. Open it and tap Rename to change.')};
   const r=new FileReader();r.onerror=()=>{toast('Could not read that file');done()};
   if(isPdf){if(f.size>10e6){toast('That PDF is over 10 MB. Please pick a smaller one.');done();return}
    r.onload=()=>{let url=String(r.result||'');if(!url.startsWith('data:application/pdf'))url=url.replace(/^data:[^;,]*/,'data:application/pdf');add(url,url.length<=640000).catch(()=>toast('Could not save that file'));done()};r.readAsDataURL(f)}
   else{r.onload=()=>{const im=new Image();im.onerror=()=>{toast('That file is not a photo or PDF');done()};im.onload=async()=>{let w=Math.min(1600,im.width),q=.75,url;const cv=document.createElement('canvas');
     for(let i=0;i<8;i++){cv.width=w;cv.height=Math.max(1,Math.round(im.height*w/im.width));cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);url=cv.toDataURL('image/jpeg',q);if(url.length<=600000)break;w=Math.round(w*.82);q=Math.max(.45,q-.05)}
-    try{await add(url,url.length<=640000)}catch(e){toast('Could not save that file')}done()};im.src=r.result};r.readAsDataURL(f)}};
+    let hi=null;try{let w2=Math.min(2400,im.width),q2=.86,u2;const c2=document.createElement('canvas');for(let i=0;i<6;i++){c2.width=w2;c2.height=Math.max(1,Math.round(im.height*w2/im.width));const x2=c2.getContext('2d');x2.imageSmoothingQuality='high';x2.drawImage(im,0,0,c2.width,c2.height);u2=c2.toDataURL('image/jpeg',q2);if(u2.length<2200000)break;w2=Math.round(w2*.85);q2=Math.max(.7,q2-.04)}if(u2.length>url.length*1.15)hi=u2}catch(e){}
+    try{await add(url,url.length<=640000,hi)}catch(e){toast('Could not save that file')}done()};im.src=r.result};r.readAsDataURL(f)}};
  pk.click()}
-async function udViewer(id){const u=getPh(id);if(!u)return;cleanupDoc();
- $('layer').innerHTML=`<div class="viewer"><header><button class="btn ghost" data-a="closedoc" style="min-height:40px">Close</button><b>${esc(udName(u))}</b><button class="btn plain" data-a="udel" data-id="${esc(id)}" style="min-height:40px">Delete</button></header><div class="pg"><div class="vc" id="vc"><div class="hint">Opening…</div></div><div class="hint">Pinch to zoom. Stored in the app, so it opens with no signal.</div></div></div>`;
+async function udViewer(id){const u0=getPh(id);if(!u0)return;const u=getPh('hi-'+id)||u0;cleanupDoc();
+ $('layer').innerHTML=`<div class="viewer"><header><button class="btn ghost" data-a="closedoc" style="min-height:40px">Close</button><b>${esc(udName(u0))}</b><button class="btn ghost" data-a="udren" data-id="${esc(id)}" style="min-height:40px">Rename</button><button class="btn plain" data-a="udel" data-id="${esc(id)}" style="min-height:40px">Delete</button></header><div class="pg"><div class="vc" id="vc"><div class="hint">Opening…</div></div><div class="hint">Pinch to zoom. Stored in the app, so it opens with no signal.</div></div></div>`;
  try{const vc=$('vc');vc.innerHTML='';
   if(udIsPdf(u)&&window.pdfjsLib){const b64=u.slice(u.indexOf(',')+1);const bin=atob(b64);const bytes=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
    pdfjsLib.GlobalWorkerOptions.workerSrc='pdf.worker.min.js';const pdf=await pdfjsLib.getDocument({data:bytes}).promise;const dpr=Math.min(window.devicePixelRatio||2,3);
@@ -748,7 +788,7 @@ async function udViewer(id){const u=getPh(id);if(!u)return;cleanupDoc();
   vc.dataset.ready='1'}catch(e){const vc=$('vc');if(vc){vc.dataset.ready='1';vc.innerHTML='<div class="card empty">Could not open this file.</div>'}}}
 let udArm=null;
 async function udDelete(id,b){if(udArm!==id){udArm=id;b.textContent='Tap again to delete';setTimeout(()=>{if(udArm===id){udArm=null;try{b.textContent='Delete'}catch(e){}}},3500);return}udArm=null;await rmUd(id)}
-async function rmUd(id){lsSet('an_udl',JSON.stringify(udLocal().filter(x=>x!==id)));await setPh(id,null);delete SYNC.phut[id];queueDel('photos/'+id);cleanupDoc();$('layer').innerHTML='';render('keep');toast('Document deleted')}
+async function rmUd(id){lsSet('an_udl',JSON.stringify(udLocal().filter(x=>x!==id)));await setPh(id,null);await setPh('hi-'+id,null);delete SYNC.phut[id];queueDel('photos/'+id);cleanupDoc();$('layer').innerHTML='';render('keep');toast('Document deleted')}
 function packList(day){const its=itemsFor(day),T=its.map(i=>(i.x||'')+' '+(i.t||'')).join(' | ').toLowerCase(),k=KN(),L=[];
 const add=(g,a)=>{if(!L.some(x=>x[1]===a))L.push([g,a])};
 add('Always','Water bottle and snacks');add('Always','Sunscreen and hats');add('Always','Phone, power bank and charger');add('Always',k+': favourite snack, wipes and a change of clothes');
@@ -826,7 +866,10 @@ document.addEventListener('click',e=>{
  if(a==='add')itemSheet(null);
  else if(a==='save')saveSheet(b.dataset.id||null);
  else if(a==='close')closeLayer();
+ else if(a==='wxrefresh'){if(!navigator.onLine){toast('You are offline. Showing the last saved forecast.');return}toast('Refreshing weather and tides…');Promise.all([wxFetch(true),tdFetch(true)]).then(r=>{toast(r[0]||r[1]?'Weather and tides updated':'Could not refresh. Showing the last saved data.');try{paintInfo()}catch(e){}})}
  else if(a==='closedoc'){cleanupDoc();$('layer').innerHTML=''}
+ else if(a==='udren'){cleanupDoc();$('layer').innerHTML='';renameSheet(b.dataset.id)}
+ else if(a==='udrenamego'){renameUdGo(b.dataset.id)}
  else if(a==='phchange'){cleanupDoc();$('layer').innerHTML='';photoSheet(b.dataset.id,b.dataset.q||'Andaman')}
  else if(a==='shareoriginal')shareOriginal(b.dataset.id);
  else if(a==='del')delItem(b.dataset.id);
@@ -881,6 +924,7 @@ document.addEventListener('change',e=>{
 window.addEventListener('error',e=>{if(errs<6&&ST&&D){errs++;fixed(e.error||e);softRender()}});
 window.addEventListener('unhandledrejection',e=>{fixed(e.reason)});
 setInterval(()=>{if(tab==='today'&&$('nowc'))paintNow()},30000);
+setInterval(()=>{try{if(document.hidden)return;if(tab==='today')paintInfo();wxFetch();tdFetch()}catch(e){}},60000);
 
 /* ================= boot, unlock ================= */
 function showLock(msg){$('nav').innerHTML='';$('pane').innerHTML=`<div class="lock"><form class="card" id="lf"><h1>Andaman Trip</h1><p class="route" style="margin:0">Enter the trip passphrase once. This phone will remember it.</p><input class="in" id="pp" type="text" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="off" placeholder="xxxx-xxxx-xxxx-xxxx" required><div class="err" id="pe" ${msg?'':'hidden'}>${esc(msg||'')}</div><button class="btn" type="submit" id="pb">Unlock</button></form></div>`;
