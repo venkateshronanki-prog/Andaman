@@ -688,7 +688,7 @@ function paintLeave(){try{const el=$('leavec');if(!el)return;const c=clock(),its
  el.innerHTML=`<div class="leave ${tone}"><b>Be ready in ${t}</b><span>${nx.t} · ${esc(nx.x.slice(0,90))}</span></div>`}catch(e){}}
 /* emergency card */
 /* flight check-in: IndiGo web check-in link, window timer and DigiYatra steps */
-const BUILD='build 13 Oct 2026 I';
+const BUILD='build 13 Oct 2026 J';
 const IGO_URL='https://www.goindigo.in/web-check-in.html',DY_URL='https://apps.apple.com/in/app/digi-yatra/id6479873321';
 function flightsAll(){const out=[];try{for(const d of DAYS){const its=itemsFor(d.n);const hmn=t=>{const m=/^(\d{1,2}):(\d{2})/.exec(t||'');return m?(+m[1])*60+(+m[2]):-1};
  for(const it of its){const m=/IndiGo\s+(6E\s*\d+)\s+departs\s+([^,(]+)/i.exec(it.x||'');const t=/^(\d{1,2}):(\d{2})/.exec(it.t||'');if(!m||!t)continue;
@@ -760,7 +760,7 @@ async function autoName(url,fname){
 function setUdName(u,name){const n=encodeURIComponent(cleanName(name)||'Document');return u.replace(/^(data:[^;,]+)(;name=[^;,]*)?(;base64,)/,'$1;name='+n+'$3')}
 function renameSheet(id){const u=getPh(id);if(!u)return;
  openLayer(`<h2>Rename document</h2><p class="route" style="margin:0">Use a name you will recognise at the counter, like “Makruzz ferry ticket”.</p><label class="fld"><input id="udn" type="text" maxlength="60" value="${esc(udName(u))}" autocomplete="off" autocapitalize="sentences" style="width:100%"></label><div class="row" style="margin-top:10px"><button class="btn plain" data-a="close">Cancel</button><button class="btn" data-a="udrenamego" data-id="${esc(id)}">Save name</button></div>`);
- setTimeout(()=>{try{const e=$('udn');e.focus();e.select()}catch(x){}},120)}
+ try{const o=$('ovl');if(o)o.classList.add('top')}catch(x){}}
 async function renameUdGo(id){const u=getPh(id),inp=$('udn');if(!u||!inp)return;const nm=cleanName(inp.value);if(!nm){toast('Type a name first');return}
  const nu=setUdName(u,nm),hi=getPh('hi-'+id);await setPh(id,nu);if(hi)await setPh('hi-'+id,setUdName(hi,nm));
  if(!udLocal().includes(id))queueSet('photos/'+id,{img:nu,by:DEV(),at:Date.now()});
